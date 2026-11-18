@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Адвент Календарь — Magic Inside</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600;1,700&family=Great+Vibes&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Строгая 5-цветная палитра */
+            --marshmallow: #fffbe9;
+            --ribbon: #8f0500;
+            --garland: #044529;
+            --sugar-cookie: #ffecc5;
+            --hot-cocoa: #562400;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--hot-cocoa);
+            font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--marshmallow);
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Лёгкая текстура ризографии / зернистой бумаги поверх всего */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 90;
+            opacity: 0.055;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='risographGrain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23risographGrain)'/%3E%3C/svg%3E");
+        }
+
+        /* =========================================================
+           1. ЭКРАН ЗАГРУЗКИ (РЕТРО-ПОСТЕР "MAGIC INSIDE")
+           ========================================================= */
+        #loader-screen {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at 50% 38%, rgba(255, 236, 197, 0.14) 0%, var(--hot-cocoa) 68%);
+            z-index: 40;
+            transition: opacity 0.75s ease-out, transform 0.75s ease-out;
+            padding: 16px;
+            overflow: hidden;
+        }
+
+        /* Геометрическое обрамление в стиле плаката "Magic Inside" (#8f0500, #044529, #ffecc5) */
+        .poster-backdrop {
+            position: absolute;
+            inset: 12px;
+            border: 2px solid var(--sugar-cookie);
+            border-radius: 18px;
+            overflow: hidden;
+            pointer-events: none;
+            box-shadow: inset 0 0 0 6px var(--hot-cocoa), inset 0 0 0 8px var(--ribbon);
+        }
+
+        /* Контрастные цветовые блоки фона (слева красный Ribbon, справа хвойное окно Garland, снизу кремовый стол Sugar Cookie) */
+        .poster-panel-left {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 46%;
+            height: 68%;
+            background-color: var(--ribbon);
+            border-right: 4px solid var(--hot-cocoa);
+        }
+
+        .poster-panel-window {
+            position: absolute;
+            top: 24px;
+            right: 20px;
+            width: 44%;
+            height: 56%;
+            background-color: var(--garland);
+            border: 5px solid var(--sugar-cookie);
+            border-radius: 10px;
+            box-shadow: inset 0 0 0 3px var(--hot-cocoa);
+            overflow: hidden;
+        }
+
+        /* Переплёт зимнего окна на фоне плаката */
+        .poster-panel-window::before {
+            content: "";
+            position: absolute;
+            top: 0; bottom: 0; left: 50%;
+            width: 5px;
+            background-color: var(--sugar-cookie);
+            transform: translateX(-50%);
+        }
+        .poster-panel-window::after {
+            content: "";
+            position: absolute;
+            left: 0; right: 0; top: 52%;
+            height: 5px;
+            background-color: var(--sugar-cookie);
+            transform: translateY(-50%);
+        }
+
+        .poster-panel-table {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 34%;
+            background: linear-gradient(180deg, var(--sugar-cookie) 0%, #f5d89e 100%);
+            border-top: 6px solid var(--garland);
+        }
+
+        /* Тень от шара на столе */
+        .globe-table-shadow {
+            position: absolute;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-56%);
+            width: 245px;
+            height: 44px;
+            background: radial-gradient(ellipse at center, var(--hot-cocoa) 35%, rgba(4, 69, 41, 0.45) 75%, transparent 100%);
+            border-radius: 50%;
+            opacity: 0.75;
+        }
+
+        /* Каллиграфический штамп "Magic Inside" на столе плаката */
+        .poster-magic-stamp {
+            position: absolute;
+            bottom: 14px;
+            right: 22px;
+            text-align: right;
+            transform: rotate(-6deg);
+            color: var(--ribbon);
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-style: italic;
+            font-weight: 700;
+            font-size: 20px;
+            line-height: 0.95;
+            letter-spacing: 0.01em;
+            text-shadow: 0 1px 0 var(--marshmallow);
+        }
+
+        /* Контейнер снежного шара */
+        .globe-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 5;
+            margin-top: -18px;
+        }
+
+        .snow-globe {
+            width: 256px;
+            height: 256px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, var(--ribbon) 0%, #6b0400 68%, var(--hot-cocoa) 100%);
+            border: 5px solid var(--marshmallow);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                inset 0 0 0 4px var(--garland),
+                inset 0 14px 28px rgba(255, 251, 233, 0.25),
+                inset 0 -18px 26px rgba(86, 36, 0, 0.75),
+                0 14px 28px rgba(86, 36, 0, 0.55);
+            z-index: 2;
+        }
+
+        /* Стеклянные блики поверх шара (Marshmallow #fffbe9) */
+        .glass-glare-main {
+            position: absolute;
+            top: 28px;
+            right: 28px;
+            width: 44px;
+            height: 64px;
+            background: rgba(255, 251, 233, 0.55);
+            border-radius: 12px 28px 12px 24px;
+            transform: rotate(-28deg);
+            z-index: 6;
+            pointer-events: none;
+        }
+
+        .glass-glare-arc {
+            position: absolute;
+            top: 14px;
+            left: 26px;
+            width: 90px;
+            height: 46px;
+            border-top: 5px solid rgba(255, 251, 233, 0.7);
+            border-left: 3px solid rgba(255, 251, 233, 0.35);
+            border-radius: 50%;
+            transform: rotate(-28deg);
+            z-index: 6;
+            pointer-events: none;
+        }
+
+        .globe-scene-svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+        }
+
+        #snowCanvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 4;
+            pointer-events: none;
+        }
+
+        /* Массивная фигурная подставка цвета Ribbon (#8f0500) с табличкой Sugar Cookie (#ffecc5) */
+        .snow-globe-pedestal {
+            width: 220px;
+            height: 74px;
+            margin-top: -18px;
+            position: relative;
+            z-index: 5;
+        }
+
+        /* Блок прогресса загрузки */
+        .loader-footer {
+            position: relative;
+            z-index: 6;
+            margin-top: 18px;
+            background-color: var(--hot-cocoa);
+            border: 2px solid var(--sugar-cookie);
+            border-radius: 14px;
+            padding: 10px 18px 12px;
+            width: 248px;
+            box-shadow: 0 8px 20px rgba(86, 36, 0, 0.5);
+            text-align: center;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 236, 197, 0.2);
+            border: 1px solid var(--sugar-cookie);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--sugar-cookie), var(--marshmallow));
+            border-radius: 999px;
+            transition: width 0.15s ease-out;
+        }
+
+        .loading-text {
+            margin-top: 7px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            color: var(--marshmallow);
+        }
+
+        /* =========================================================
+           2. ОСНОВНОЙ ЭКРАН (ЗИМНИЙ ДОМ + ВИНТАЖНАЯ ОТКРЫТКА)
+           ========================================================= */
+        #main-screen {
+            opacity: 0;
+            transition: opacity 0.85s ease-in;
+            height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background-color: var(--hot-cocoa);
+            position: relative;
+        }
+
+        /* Небо над домом с салютом и падающим снегом */
+        .sky-fireworks-section {
+            position: relative;
+            width: 100%;
+            max-width: 540px;
+            margin: 0 auto;
+            padding: 14px 14px 0;
+            background: radial-gradient(circle at 50% 25%, rgba(255, 236, 197, 0.12) 0%, var(--hot-cocoa) 75%);
+        }
+
+        .fireworks-svg {
+            width: 100%;
+            height: 126px;
+            display: block;
+            overflow: visible;
+        }
+
+        /* Анимация искр салюта */
+        @keyframes fireworkPulse {
+            0%, 100% { transform: scale(0.95); opacity: 0.82; }
+            50% { transform: scale(1.04); opacity: 1; }
+        }
+        .fw-burst-1 { transform-origin: 82px 54px; animation: fireworkPulse 3.6s ease-in-out infinite; }
+        .fw-burst-2 { transform-origin: 200px 48px; animation: fireworkPulse 4.2s ease-in-out infinite 0.7s; }
+        .fw-burst-3 { transform-origin: 318px 52px; animation: fireworkPulse 3.9s ease-in-out infinite 1.4s; }
+
+        /* Винтажная открытка-заголовок "ADVENT Calendar" с пунктирной рамкой */
+        .postcard-header-wrap {
+            position: relative;
+            margin: -10px auto 14px;
+            max-width: 480px;
+            background-color: var(--marshmallow);
+            color: var(--ribbon);
+            border-radius: 16px;
+            padding: 14px 16px 12px;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.38);
+            text-align: center;
+            z-index: 4;
+        }
+
+        /* Фирменная пунктирная рамка из референса (стежки цвета #8f0500) */
+        .postcard-header-wrap::before {
+            content: "";
+            position: absolute;
+            inset: 6px;
+            border: 2.5px dashed var(--ribbon);
+            border-radius: 11px;
+            pointer-events: none;
+        }
+
+        .title-serif {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            line-height: 0.9;
+            color: var(--ribbon);
+            margin: 0;
+            text-transform: uppercase;
+        }
+
+        .title-script {
+            font-family: 'Great Vibes', cursive;
+            font-size: 40px;
+            font-weight: 400;
+            line-height: 0.85;
+            color: var(--garland);
+            margin: -4px 0 4px;
+            text-shadow: 0 1px 0 var(--sugar-cookie);
+        }
+
+        .progress-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background-color: var(--sugar-cookie);
+            border: 1px solid var(--ribbon);
+            color: var(--hot-cocoa);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 12px;
+            border-radius: 999px;
+            margin-top: 2px;
+        }
+
+        /* =========================================================
+           АРХИТЕКТУРНЫЙ ФАСАД МНОГОЭТАЖНОГО ЗИМНЕГО ДОМА
+           ========================================================= */
+        .mansion-wrapper {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 0 12px 48px;
+            position: relative;
+        }
+
+        /* Мансардная крыша с трубами, дымком и слуховыми окошками */
+        .mansard-roof {
+            width: 100%;
+            display: block;
+            margin-bottom: -2px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Основной корпус дома */
+        .house-facade {
+            background-color: var(--ribbon);
+            border-left: 5px solid var(--sugar-cookie);
+            border-right: 5px solid var(--sugar-cookie);
+            border-bottom: 10px solid var(--marshmallow);
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+            position: relative;
+            padding: 12px 10px 18px;
+            /* Текстура кирпичной кладки */
+            background-image: 
+                linear-gradient(90deg, rgba(86, 36, 0, 0.22) 1px, transparent 1px),
+                linear-gradient(rgba(86, 36, 0, 0.22) 1px, transparent 1px);
+            background-size: 28px 14px;
+        }
+
+        /* Архитектурный карниз между этажами */
+        .floor-cornice {
+            height: 10px;
+            background: linear-gradient(180deg, var(--marshmallow) 0%, var(--sugar-cookie) 65%, var(--hot-cocoa) 100%);
+            margin: 12px -15px;
+            border-radius: 3px;
+            box-shadow: 0 3px 6px rgba(86, 36, 0, 0.45);
+            position: relative;
+            z-index: 3;
+        }
+
+        /* Ряд окон на этаже (сетка 3 колонки — 8 этажей = 24 окна) */
+        .floor-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            position: relative;
+        }
+
+        /* =========================================================
+           ОКОШКО-ЯЧЕЙКА АДВЕНТ-КАЛЕНДАРЯ (1–24)
+           ========================================================= */
+        .window-cell {
+            position: relative;
+            aspect-ratio: 0.84 / 1;
+            background-color: var(--hot-cocoa);
+            border: 3px solid var(--sugar-cookie);
+            border-radius: 8px 8px 4px 4px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            transition: transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 
+                inset 0 4px 12px rgba(0, 0, 0, 0.6),
+                0 4px 8px rgba(86, 36, 0, 0.45);
+            user-select: none;
+            overflow: visible;
+        }
+
+        /* Арочные окна для верхних и средних этажей */
+        .window-cell.arched {
+            border-radius: 50% 50% 6px 6px / 34% 34% 6px 6px;
+        }
+
+        /* Заснеженный подоконник снизу каждого окна (#fffbe9) */
+        .window-cell::after {
+            content: "";
+            position: absolute;
+            bottom: -7px;
+            left: -6px;
+            right: -6px;
+            height: 9px;
+            background: linear-gradient(180deg, var(--marshmallow) 55%, var(--sugar-cookie) 100%);
+            border-radius: 5px;
+            box-shadow: 0 3px 5px rgba(86, 36, 0, 0.5);
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* Декоративные зелёные ставни (#044529) для части окон */
+        .window-cell.has-shutters::before {
+            content: "";
+            position: absolute;
+            inset: 2px -7px 2px -7px;
+            border-left: 5px solid var(--garland);
+            border-right: 5px solid var(--garland);
+            border-radius: 3px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .window-cell:active {
+            transform: scale(0.95);
+        }
+
+        /* Миниатюрная табличка с номером дня в углу или над окном */
+        .day-plaque {
+            position: absolute;
+            top: -9px;
+            right: -5px;
+            background-color: var(--marshmallow);
+            color: var(--ribbon);
+            border: 1.5px solid var(--ribbon);
+            border-radius: 6px;
+            padding: 1px 6px;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.1;
+            box-shadow: 0 2px 5px rgba(86, 36, 0, 0.45);
+            z-index: 6;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        .window-cell.opened .day-plaque {
+            background-color: var(--garland);
+            color: var(--marshmallow);
+            border-color: var(--sugar-cookie);
+        }
+
+        /* Содержимое ЗАКРЫТОГО окна (ставни + линеарная гравюра или венок) */
+        .closed-pane {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #6e3003 0%, var(--hot-cocoa) 100%);
+            border-radius: inherit;
+            overflow: hidden;
+            transition: opacity 0.45s ease, transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 3;
+        }
+
+        /* Оконный переплёт внутри закрытого окна */
+        .pane-cross-v {
+            position: absolute;
+            top: 0; bottom: 0; left: 50%;
+            width: 2px;
+            background-color: rgba(255, 236, 197, 0.25);
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+        .pane-cross-h {
+            position: absolute;
+            left: 0; right: 0; top: 52%;
+            height: 2px;
+            background-color: rgba(255, 236, 197, 0.25);
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        /* Карточка с красной линеарной гравюрой внутри закрытого окна */
+        .engraving-card {
+            width: 72%;
+            height: 70%;
+            background-color: var(--marshmallow);
+            border: 1.5px solid var(--sugar-cookie);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+            position: relative;
+            z-index: 2;
+        }
+
+        .engraving-card svg {
+            width: 100%;
+            height: 100%;
+            stroke: var(--ribbon);
+            fill: none;
+            stroke-width: 1.6;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* Рождественский венок (#044529 с красным бантом #8f0500) */
+        .wreath-badge {
+            width: 68%;
+            height: 68%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Содержимое ОТКРЫТОГО окна (тёплый свет комнаты #ffecc5 / #fffbe9 + подарок) */
+        .opened-room {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 45%, var(--marshmallow) 15%, var(--sugar-cookie) 88%);
+            border-radius: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            opacity: 0;
+            transform: scale(0.85);
+            transition: opacity 0.45s ease 0.1s, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s;
+            z-index: 2;
+            box-shadow: inset 0 0 14px rgba(143, 5, 0, 0.25);
+        }
+
+        .opened-room svg {
+            width: 74%;
+            height: 74%;
+            filter: drop-shadow(0 2px 3px rgba(86, 36, 0, 0.22));
+        }
+
+        /* Состояние открытого окна */
+        .window-cell.opened {
+            box-shadow: 
+                0 0 18px rgba(255, 236, 197, 0.65),
+                0 4px 10px rgba(86, 36, 0, 0.5);
+        }
+
+        .window-cell.opened .closed-pane {
+            opacity: 0;
+            transform: scale(1.15);
+            pointer-events: none;
+        }
+
+        .window-cell.opened .opened-room {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Парадный подъезд в центре нижнего этажа */
+        .grand-entrance-banner {
+            margin-top: 14px;
+            background-color: var(--garland);
+            border: 2px solid var(--sugar-cookie);
+            border-radius: 10px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.35);
+        }
+
+        .entrance-text {
+            font-size: 11px;
+            line-height: 1.35;
+            color: var(--marshmallow);
+        }
+
+        .reset-btn {
+            background-color: var(--sugar-cookie);
+            color: var(--hot-cocoa);
+            border: 1.5px solid var(--ribbon);
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: transform 0.15s ease, background-color 0.2s;
+        }
+
+        .reset-btn:active {
+            transform: scale(0.94);
+            background-color: var(--marshmallow);
+        }
+
+        /* =========================================================
+           МОДАЛЬНОЕ ОКНО ДНЯ С ТЁПЛЫМ ПОЗДРАВЛЕНИЕМ
+           ========================================================= */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(86, 36, 0, 0.78);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 80;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-backdrop.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .day-modal-card {
+            position: relative;
+            width: 100%;
+            max-width: 340px;
+            background-color: var(--marshmallow);
+            color: var(--hot-cocoa);
+            border: 3px solid var(--sugar-cookie);
+            border-radius: 20px;
+            padding: 24px 20px 20px;
+            text-align: center;
+            box-shadow: 0 20px 44px rgba(0, 0, 0, 0.6);
+            transform: translateY(24px) scale(0.94);
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-backdrop.active .day-modal-card {
+            transform: translateY(0) scale(1);
+        }
+
+        /* Пунктирная рамка открытки внутри модального окна */
+        .day-modal-card::before {
+            content: "";
+            position: absolute;
+            inset: 8px;
+            border: 2px dashed var(--ribbon);
+            border-radius: 13px;
+            pointer-events: none;
+        }
+
+        .modal-day-badge {
+            display: inline-block;
+            background-color: var(--ribbon);
+            color: var(--marshmallow);
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 16px;
+            font-weight: 700;
+            padding: 3px 16px;
+            border-radius: 999px;
+            border: 1.5px solid var(--sugar-cookie);
+            margin-bottom: 12px;
+        }
+
+        .modal-illustration-box {
+            width: 116px;
+            height: 116px;
+            margin: 0 auto 14px;
+            background: radial-gradient(circle, var(--marshmallow) 20%, var(--sugar-cookie) 100%);
+            border: 2px solid var(--garland);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            box-shadow: 0 6px 14px rgba(86, 36, 0, 0.16);
+        }
+
+        .modal-illustration-box svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .modal-gift-title {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--ribbon);
+            margin: 0 0 8px;
+            line-height: 1.1;
+        }
+
+        .modal-gift-wish {
+            font-size: 13.5px;
+            line-height: 1.5;
+            color: var(--hot-cocoa);
+            margin: 0 0 18px;
+            padding: 0 6px;
+        }
+
+        .modal-close-btn {
+            width: 100%;
+            background-color: var(--garland);
+            color: var(--marshmallow);
+            border: 2px solid var(--sugar-cookie);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(4, 69, 41, 0.35);
+            transition: transform 0.15s ease, background-color 0.2s;
+            position: relative;
+            z-index: 2;
+        }
+
+        .modal-close-btn:active {
+            transform: scale(0.97);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- =========================================================
+         1. ЭКРАН ЗАГРУЗКИ (РЕТРО-ПОСТЕР "MAGIC INSIDE")
+         ========================================================= -->
+    <div id="loader-screen">
+        <!-- Архитектурный фон ретро-постера -->
+        <div class="poster-backdrop">
+            <div class="poster-panel-left"></div>
+            <div class="poster-panel-window"></div>
+            <div class="poster-panel-table">
+                <div class="globe-table-shadow"></div>
+                <div class="poster-magic-stamp">Magic<br>Inside</div>
+            </div>
+        </div>
+
+        <!-- Снежный шар на массивной подставке -->
+        <div class="globe-wrapper">
+            <div class="snow-globe" id="globe">
+                <div class="glass-glare-arc"></div>
+                <div class="glass-glare-main"></div>
+
+                <!-- Детализированная SVG-сцена внутри шара в строгих 5 цветах -->
+                <svg class="globe-scene-svg" viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Мягкое кремовое сияние за ёлкой -->
+                    <circle cx="130" cy="118" r="76" fill="#ffecc5" opacity="0.22"/>
+                    <circle cx="130" cy="118" r="50" fill="#fffbe9" opacity="0.16"/>
+
+                    <!-- Задние маленькие ёлочки (#044529) -->
+                    <polygon points="62,130 46,174 78,174" fill="#044529" stroke="#ffecc5" stroke-width="1"/>
+                    <polygon points="198,134 182,174 214,174" fill="#044529" stroke="#ffecc5" stroke-width="1"/>
+
+                    <!-- Высокая пушистая главная ёлка (#044529) -->
+                    <g transform="translate(130, 34)">
+                        <!-- Ствол -->
+                        <rect x="-7" y="138" width="14" height="18" fill="#562400"/>
+                        <!-- Ярусы ели -->
+                        <polygon points="0,8 -22,42 22,42" fill="#044529"/>
+                        <polygon points="0,28 -32,70 32,70" fill="#044529"/>
+                        <polygon points="0,52 -42,102 42,102" fill="#044529"/>
+                        <polygon points="0,78 -52,138 52,138" fill="#044529"/>
+
+                        <!-- Кремовые гирлянды (#ffecc5) -->
+                        <path d="M-15,34 Q0,41 15,34 M-24,60 Q0,70 24,60 M-34,90 Q0,102 34,90 M-44,124 Q0,136 44,124" 
+                              fill="none" stroke="#ffecc5" stroke-width="2" stroke-linecap="round"/>
+
+                        <!-- Красные ёлочные шары (#8f0500) -->
+                        <circle cx="-8" cy="30" r="3.5" fill="#8f0500" stroke="#fffbe9" stroke-width="0.7"/>
+                        <circle cx="10" cy="48" r="4" fill="#8f0500" stroke="#fffbe9" stroke-width="0.7"/>
+                        <circle cx="-16" cy="64" r="4" fill="#8f0500" stroke="#fffbe9" stroke-width="0.7"/>
+                        <circle cx="18" cy="82" r="4.2" fill="#8f0500" stroke="#fffbe9" stroke-width="0.7"/>
+                        <circle cx="-6" cy="92" r="3.8" fill="#8f0500" stroke="#fffbe9" stroke-width="0.7"/>
+                        <circle cx="-26" cy="116" r="4.5" fill="#8f0500" stroke="#fffbe9" stroke-width="0.7"/>
+                        <circle cx="24" cy="118" r="4.2" fill="#8f0500" stroke="#fffbe9" stroke-width="0.7"/>
+                        <circle cx="2" cy="126" r="4" fill="#8f0500" stroke="#fffbe9" stroke-width="0.7"/>
+
+                        <!-- Звезда на макушке (#ffecc5) -->
+                        <polygon points="0,-6 3.5,1 11,1 5,6 7,13 0,8.5 -7,13 -5,6 -11,1 -3.5,1" 
+                                 fill="#ffecc5" stroke="#fffbe9" stroke-width="0.8"/>
+                    </g>
+
+                    <!-- Сугроб заднего плана (#ffecc5) -->
+                    <path d="M16,184 Q75,164 135,176 Q195,186 244,172 L244,230 L16,230 Z" fill="#ffecc5"/>
+
+                    <!-- Левый уютный домик цвета Sugar Cookie (#ffecc5) с крышей Marshmallow (#fffbe9) -->
+                    <g transform="translate(46, 134)">
+                        <!-- Труба -->
+                        <rect x="34" y="2" width="7" height="14" fill="#8f0500"/>
+                        <rect x="33" y="1" width="9" height="3" rx="1" fill="#fffbe9"/>
+                        <!-- Стены -->
+                        <polygon points="4,22 25,6 46,22 46,52 4,52" fill="#ffecc5" stroke="#562400" stroke-width="1.2"/>
+                        <polygon points="46,22 58,17 58,47 46,52" fill="#562400"/>
+                        <!-- Крыша -->
+                        <path d="M0,23 L25,3 L49,23 L45,26 L25,9 L4,26 Z" fill="#fffbe9" stroke="#562400" stroke-width="0.8"/>
+                        <path d="M25,3 L61,15 L48,23 L25,9 Z" fill="#044529"/>
+                        <!-- Окошки и арочная дверь -->
+                        <rect x="10" y="30" width="8" height="8" rx="1" fill="#8f0500"/>
+                        <rect x="22" y="30" width="8" height="8" rx="1" fill="#8f0500"/>
+                        <path d="M35,52 L35,34 A4,4 0 0,1 43,34 L43,52 Z" fill="#044529"/>
+                    </g>
+
+                    <!-- Правый уютный домик цвета Ribbon (#8f0500) -->
+                    <g transform="translate(154, 140)">
+                        <!-- Труба -->
+                        <rect x="26" y="1" width="6" height="13" fill="#562400"/>
+                        <rect x="25" y="0" width="8" height="3" rx="1" fill="#fffbe9"/>
+                        <!-- Стены -->
+                        <polygon points="4,20 22,5 40,20 40,48 4,48" fill="#8f0500" stroke="#fffbe9" stroke-width="1"/>
+                        <polygon points="40,20 52,15 52,43 40,48" fill="#562400"/>
+                        <!-- Крыша -->
+                        <path d="M0,21 L22,2 L43,21 L39,24 L22,8 L4,24 Z" fill="#fffbe9"/>
+                        <path d="M22,2 L55,13 L42,21 L22,8 Z" fill="#044529"/>
+                        <!-- Окошки и дверь -->
+                        <rect x="22" y="28" width="7" height="7" rx="1" fill="#ffecc5"/>
+                        <rect x="31" y="28" width="6" height="7" rx="1" fill="#ffecc5"/>
+                        <path d="M10,48 L10,32 A3.5,3.5 0 0,1 17,32 L17,48 Z" fill="#044529"/>
+                    </g>
+
+                    <!-- Коробка с подарком в центре перед ёлкой (#8f0500 + бант #ffecc5) -->
+                    <g transform="translate(121, 168)">
+                        <rect x="0" y="5" width="18" height="15" rx="2" fill="#8f0500" stroke="#fffbe9" stroke-width="0.9"/>
+                        <rect x="-1.5" y="3" width="21" height="4" rx="1" fill="#8f0500" stroke="#fffbe9" stroke-width="0.8"/>
+                        <rect x="7.5" y="3" width="3" height="17" fill="#ffecc5"/>
+                        <path d="M9,3 C5,-2 1,1 7,3 M9,3 C13,-2 17,1 11,3" fill="none" stroke="#ffecc5" stroke-width="1.5"/>
+                    </g>
+
+                    <!-- Передний пышный сугроб Marshmallow (#fffbe9) -->
+                    <path d="M18,194 Q88,180 142,196 Q198,208 242,188 L242,256 L18,256 Z" fill="#fffbe9"/>
+                </svg>
+
+                <!-- Canvas живого падающего снега -->
+                <canvas id="snowCanvas"></canvas>
+            </div>
+
+            <!-- Массивная фигурная подставка цвета Ribbon (#8f0500) -->
+            <div class="snow-globe-pedestal">
+                <svg width="220" height="74" viewBox="0 0 220 74" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Верхний ободок -->
+                    <path d="M32,8 Q110,20 188,8 L194,20 Q110,32 26,20 Z" fill="#562400" stroke="#ffecc5" stroke-width="1.2"/>
+                    <!-- Основная чаша подставки цвета Ribbon (#8f0500) -->
+                    <path d="M26,18 Q110,30 194,18 L208,56 Q110,70 12,56 Z" fill="#8f0500" stroke="#ffecc5" stroke-width="1.5"/>
+                    <!-- Нижний цоколь -->
+                    <path d="M10,54 Q110,68 210,54 L212,62 Q110,74 8,62 Z" fill="#562400" stroke="#ffecc5" stroke-width="1.2"/>
+                    <!-- Кремовая табличка Sugar Cookie (#ffecc5) -->
+                    <path d="M46,27 Q52,27 54,22 L166,22 Q168,27 174,27 L174,47 Q168,47 166,52 L54,52 Q52,47 46,47 Z" 
+                          fill="#ffecc5" stroke="#562400" stroke-width="1.5"/>
+                    <circle cx="51" cy="37" r="2" fill="#8f0500"/>
+                    <circle cx="169" cy="37" r="2" fill="#8f0500"/>
+                    <!-- Каллиграфическая надпись -->
+                    <text x="110" y="42" text-anchor="middle" font-family="'Cormorant Garamond', Georgia, serif" font-style="italic" font-size="18" font-weight="700" fill="#8f0500" letter-spacing="0.4">Magic Inside</text>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Элегантный прогресс-бар -->
+        <div class="loader-footer">
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="loading-text" id="loadingText">Загрузка подарков... 0%</div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         2. ОСНОВНОЙ ЭКРАН (САЛЮТ + ВИНТАЖНАЯ ОТКРЫТКА + ЗИМНИЙ ДОМ)
+         ========================================================= -->
+    <div id="main-screen" class="hidden">
+        <!-- Верхний блок: ночной салют из тонких искр Marshmallow и Sugar Cookie -->
+        <div class="sky-fireworks-section">
+            <svg class="fireworks-svg" viewBox="0 0 400 126" xmlns="http://www.w3.org/2000/svg">
+                <!-- Полумесяц и звёзды -->
+                <path d="M36,42 A10,10 0 1,0 48,54 A8,8 0 1,1 36,42 Z" fill="#ffecc5"/>
+                <g fill="#fffbe9">
+                    <circle cx="24" cy="24" r="1.5"/>
+                    <circle cx="136" cy="20" r="1.8"/>
+                    <circle cx="264" cy="18" r="1.5"/>
+                    <circle cx="372" cy="28" r="1.8"/>
+                    <circle cx="18" cy="84" r="1.4"/>
+                    <circle cx="382" cy="78" r="1.4"/>
+                    <circle cx="145" cy="76" r="1.2"/>
+                    <circle cx="255" cy="80" r="1.3"/>
+                </g>
+
+                <!-- Левый салют (#ffecc5) -->
+                <g class="fw-burst-1" stroke="#ffecc5" stroke-width="1.3" stroke-linecap="round">
+                    <circle cx="82" cy="54" r="2.5" fill="#fffbe9" stroke="none"/>
+                    <line x1="82" y1="54" x2="82" y2="24"/>
+                    <line x1="82" y1="54" x2="82" y2="84"/>
+                    <line x1="82" y1="54" x2="52" y2="54"/>
+                    <line x1="82" y1="54" x2="112" y2="54"/>
+                    <line x1="82" y1="54" x2="61" y2="33"/>
+                    <line x1="82" y1="54" x2="103" y2="75"/>
+                    <line x1="82" y1="54" x2="103" y2="33"/>
+                    <line x1="82" y1="54" x2="61" y2="75"/>
+                    <line x1="82" y1="54" x2="71" y2="27" stroke-dasharray="12 4"/>
+                    <line x1="82" y1="54" x2="93" y2="81" stroke-dasharray="12 4"/>
+                    <line x1="82" y1="54" x2="55" y2="43" stroke-dasharray="12 4"/>
+                    <line x1="82" y1="54" x2="109" y2="65" stroke-dasharray="12 4"/>
+                </g>
+
+                <!-- Центральный большой салют (#fffbe9 и #ffecc5) -->
+                <g class="fw-burst-2" stroke="#fffbe9" stroke-width="1.4" stroke-linecap="round">
+                    <circle cx="200" cy="48" r="3.5" fill="#ffecc5" stroke="none"/>
+                    <line x1="200" y1="48" x2="200" y2="10"/>
+                    <line x1="200" y1="48" x2="200" y2="86"/>
+                    <line x1="200" y1="48" x2="162" y2="48"/>
+                    <line x1="200" y1="48" x2="238" y2="48"/>
+                    <line x1="200" y1="48" x2="173" y2="21"/>
+                    <line x1="200" y1="48" x2="227" y2="75"/>
+                    <line x1="200" y1="48" x2="227" y2="21"/>
+                    <line x1="200" y1="48" x2="173" y2="75"/>
+                    <line x1="200" y1="48" x2="186" y2="14" stroke="#ffecc5"/>
+                    <line x1="200" y1="48" x2="214" y2="82" stroke="#ffecc5"/>
+                    <line x1="200" y1="48" x2="166" y2="34" stroke="#ffecc5"/>
+                    <line x1="200" y1="48" x2="234" y2="62" stroke="#ffecc5"/>
+                    <line x1="200" y1="48" x2="214" y2="14" stroke="#ffecc5"/>
+                    <line x1="200" y1="48" x2="186" y2="82" stroke="#ffecc5"/>
+                    <line x1="200" y1="48" x2="234" y2="34" stroke="#ffecc5"/>
+                    <line x1="200" y1="48" x2="166" y2="62" stroke="#ffecc5"/>
+                </g>
+
+                <!-- Правый салют (#ffecc5) -->
+                <g class="fw-burst-3" stroke="#ffecc5" stroke-width="1.3" stroke-linecap="round">
+                    <circle cx="318" cy="52" r="2.8" fill="#fffbe9" stroke="none"/>
+                    <line x1="318" y1="52" x2="318" y2="20"/>
+                    <line x1="318" y1="52" x2="318" y2="84"/>
+                    <line x1="318" y1="52" x2="286" y2="52"/>
+                    <line x1="318" y1="52" x2="350" y2="52"/>
+                    <line x1="318" y1="52" x2="296" y2="30"/>
+                    <line x1="318" y1="52" x2="340" y2="74"/>
+                    <line x1="318" y1="52" x2="340" y2="30"/>
+                    <line x1="318" y1="52" x2="296" y2="74"/>
+                </g>
+            </svg>
+
+            <!-- Винтажная открытка-заголовок "ADVENT Calendar" -->
+            <header class="postcard-header-wrap">
+                <h1 class="title-serif">ADVENT</h1>
+                <div class="title-script">Calendar</div>
+                <div class="progress-pill" id="openedCounter">Открыто окошек: 0 из 24</div>
+            </header>
+        </div>
+
+        <!-- Основная секция: архитектурный фасад многоэтажного зимнего дома с мансардой -->
+        <main class="mansion-wrapper">
+            <!-- Мансардная крыша (#044529) со снегом (#fffbe9), трубами и слуховыми окошками -->
+            <svg class="mansard-roof" viewBox="0 0 460 116" xmlns="http://www.w3.org/2000/svg">
+                <!-- Дымовые трубы (#8f0500) со снегом (#fffbe9) -->
+                <rect x="92" y="14" width="22" height="34" fill="#8f0500" stroke="#ffecc5" stroke-width="1.5"/>
+                <rect x="89" y="11" width="28" height="6" rx="2" fill="#fffbe9"/>
+                <rect x="346" y="14" width="22" height="34" fill="#8f0500" stroke="#ffecc5" stroke-width="1.5"/>
+                <rect x="343" y="11" width="28" height="6" rx="2" fill="#fffbe9"/>
+
+                <!-- Дымок из труб -->
+                <circle cx="103" cy="6" r="3" fill="#fffbe9" opacity="0.5"/>
+                <circle cx="108" cy="2" r="2" fill="#fffbe9" opacity="0.35"/>
+                <circle cx="357" cy="6" r="3" fill="#fffbe9" opacity="0.5"/>
+
+                <!-- Трапеция мансардной крыши (#044529) -->
+                <polygon points="56,36 404,36 454,106 6,106" fill="#044529" stroke="#ffecc5" stroke-width="2.5"/>
+                <!-- Снежный гребень на коньке крыши -->
+                <path d="M54,36 Q140,32 230,36 Q320,32 406,36 L402,44 Q315,40 230,44 Q145,40 58,44 Z" fill="#fffbe9"/>
+
+                <!-- Три декоративных слуховых окошка мансарды -->
+                <!-- Левое слуховое окно -->
+                <g transform="translate(96, 52)">
+                    <path d="M0,46 L0,18 A18,18 0 0,1 36,18 L36,46 Z" fill="#ffecc5"/>
+                    <path d="M5,44 L5,19 A13,13 0 0,1 31,19 L31,44 Z" fill="#8f0500"/>
+                    <line x1="18" y1="6" x2="18" y2="44" stroke="#ffecc5" stroke-width="1.5"/>
+                    <line x1="5" y1="25" x2="31" y2="25" stroke="#ffecc5" stroke-width="1.5"/>
+                </g>
+
+                <!-- Центральное парадное слуховое окно с венком -->
+                <g transform="translate(206, 44)">
+                    <path d="M0,54 L0,22 A24,24 0 0,1 48,22 L48,54 Z" fill="#fffbe9"/>
+                    <path d="M6,52 L6,23 A18,18 0 0,1 42,23 L42,52 Z" fill="#ffecc5"/>
+                    <circle cx="24" cy="28" r="9" fill="none" stroke="#044529" stroke-width="4"/>
+                    <circle cx="24" cy="36" r="3" fill="#8f0500"/>
+                </g>
+
+                <!-- Правое слуховое окно -->
+                <g transform="translate(328, 52)">
+                    <path d="M0,46 L0,18 A18,18 0 0,1 36,18 L36,46 Z" fill="#ffecc5"/>
+                    <path d="M5,44 L5,19 A13,13 0 0,1 31,19 L31,44 Z" fill="#8f0500"/>
+                    <line x1="18" y1="6" x2="18" y2="44" stroke="#ffecc5" stroke-width="1.5"/>
+                    <line x1="5" y1="25" x2="31" y2="25" stroke="#ffecc5" stroke-width="1.5"/>
+                </g>
+
+                <!-- Главный карниз под крышей -->
+                <rect x="0" y="104" width="460" height="12" rx="4" fill="#ffecc5" stroke="#562400" stroke-width="1.5"/>
+            </svg>
+
+            <!-- Фасад дома с 8 этажами по 3 окна (всего 24 окна) -->
+            <div class="house-facade" id="houseFacade">
+                <!-- Этажи и окна будут сгенерированы через JS -->
+            </div>
+        </main>
+    </div>
+
+    <!-- =========================================================
+         3. МОДАЛЬНОЕ ОКНО ДНЯ С ПОЗДРАВЛЕНИЕМ
+         ========================================================= -->
+    <div class="modal-backdrop" id="dayModal">
+        <div class="day-modal-card">
+            <div class="modal-day-badge" id="modalDayBadge">День 1</div>
+            <div class="modal-illustration-box" id="modalIllustration"></div>
+            <h2 class="modal-gift-title" id="modalGiftTitle">Горячее какао</h2>
+            <p class="modal-gift-wish" id="modalGiftWish">Пусть этот зимний день согреет вас ароматом шоколада и нежного зефира.</p>
+            <button class="modal-close-btn" id="modalCloseBtn">Сохранить в копилку ✨</button>
+        </div>
+    </div>
+
+    <script>
+        // --- ИНИЦИАЛИЗАЦИЯ TELEGRAM MINI APP ---
+        const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            tg.setHeaderColor('#562400');
+            tg.setBackgroundColor('#562400');
+        }
+
+        function triggerHaptic(style = 'light') {
+            if (tg && tg.HapticFeedback) {
+                try {
+                    tg.HapticFeedback.impactOccurred(style);
+                } catch (e) {}
+            }
+        }
+
+        // --- АНИМАЦИЯ СНЕГА В ШАРЕ НА CANVAS (#fffbe9) ---
+        const canvas = document.getElementById('snowCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        function resizeCanvas() {
+            const globe = document.getElementById('globe');
+            if (!globe) return;
+            width = canvas.width = globe.offsetWidth;
+            height = canvas.height = globe.offsetHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const particles = [];
+        const maxParticles = 70;
+
+        class Snowflake {
+            constructor() {
+                this.reset(true);
+            }
+            reset(initial = false) {
+                this.x = Math.random() * width;
+                this.y = initial ? Math.random() * height : -8;
+                this.radius = Math.random() * 2.2 + 0.9;
+                this.speedY = Math.random() * 0.85 + 0.35;
+                this.speedX = Math.random() * 0.5 - 0.25;
+                this.opacity = Math.random() * 0.5 + 0.45;
+            }
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX;
+                if (this.y > height + 5) this.reset(false);
+                if (this.x > width) this.x = 0;
+                if (this.x < 0) this.x = width;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 251, 233, ${this.opacity})`;
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < maxParticles; i++) {
+            particles.push(new Snowflake());
+        }
+
+        let snowRunning = true;
+        function animateSnow() {
+            if (!snowRunning) return;
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateSnow);
+        }
+        animateSnow();
+
+        // --- ЛОГИКА ЭКРАНА ЗАГРУЗКИ ---
+        let progress = 0;
+        const progressBar = document.getElementById('progressBar');
+        const loadingText = document.getElementById('loadingText');
+        const loaderScreen = document.getElementById('loader-screen');
+        const mainScreen = document.getElementById('main-screen');
+
+        const loadInterval = setInterval(() => {
+            progress += Math.random() * 16 + 6;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(loadInterval);
+
+                setTimeout(() => {
+                    loadingText.innerText = "Готово!";
+                    loaderScreen.style.opacity = '0';
+                    loaderScreen.style.transform = 'scale(1.03)';
+                    setTimeout(() => {
+                        snowRunning = false;
+                        loaderScreen.classList.add('hidden');
+                        mainScreen.classList.remove('hidden');
+                        document.body.style.overflow = 'auto';
+                        setTimeout(() => { mainScreen.style.opacity = '1'; }, 40);
+                    }, 750);
+                }, 400);
+            }
+            progressBar.style.width = progress + '%';
+            loadingText.innerText = `Загрузка подарков... ${Math.floor(progress)}%`;
+        }, 180);
+
+        // --- БАЗА ИЛЛЮСТРАЦИЙ И ПОЗДРАВЛЕНИЙ НА 24 ДНЯ (СТРОГО 5 ЦВЕТОВ) ---
+        // Цвета: Marshmallow #fffbe9, Ribbon #8f0500, Garland #044529, Sugar Cookie #ffecc5, Hot Cacao #562400
+        const ADVENT_DAYS = [
+            {
+                day: 1,
+                title: "Какао с маршмеллоу",
+                wish: "Пусть первый день календаря наполнит дом ароматом горячего шоколада, ванили и тёплого уюта.",
+                giftSvg: `<svg viewBox="0 0 64 64"><path d="M14,24 H44 V42 A12,12 0 0,1 32,54 H26 A12,12 0 0,1 14,42 Z" fill="#8f0500" stroke="#562400" stroke-width="2"/><path d="M44,28 H50 A6,6 0 0,1 50,40 H44" fill="none" stroke="#8f0500" stroke-width="3.5"/><ellipse cx="29" cy="24" rx="15" ry="4" fill="#562400"/><rect x="20" y="19" width="7" height="6" rx="2" fill="#fffbe9" stroke="#562400" stroke-width="1"/><rect x="29" y="18" width="7" height="6" rx="2" fill="#fffbe9" stroke="#562400" stroke-width="1"/><path d="M24,13 Q22,9 25,6 M33,12 Q31,8 34,5" fill="none" stroke="#044529" stroke-width="1.8" stroke-linecap="round"/></svg>`
+            },
+            {
+                day: 2,
+                title: "Пряничный домик",
+                wish: "Пусть в вашем доме всегда живёт сказка, а каждый вечер приносит сладкие поводы для улыбки.",
+                giftSvg: `<svg viewBox="0 0 64 64"><polygon points="12,30 32,12 52,30 52,54 12,54" fill="#562400" stroke="#8f0500" stroke-width="1.5"/><path d="M8,31 L32,9 L56,31" fill="none" stroke="#fffbe9" stroke-width="5" stroke-linecap="round"/><path d="M26,54 V38 A6,6 0 0,1 38,38 V54 Z" fill="#8f0500" stroke="#ffecc5" stroke-width="1.5"/><rect x="17" y="34" width="6" height="6" rx="1" fill="#ffecc5"/><rect x="41" y="34" width="6" height="6" rx="1" fill="#ffecc5"/><circle cx="32" cy="22" r="3" fill="#044529"/></svg>`
+            },
+            {
+                day: 3,
+                title: "Леденец-трость",
+                wish: "Желаем вам ярких зимних прогулок, бодрого настроения и сладких новогодних чудес!",
+                giftSvg: `<svg viewBox="0 0 64 64"><path d="M24,24 A10,10 0 0,1 44,24 V52 A4,4 0 0,1 36,52 V24 A2,2 0 0,0 32,24 V28 A4,4 0 0,1 24,28 Z" fill="#fffbe9" stroke="#8f0500" stroke-width="2"/><path d="M25,21 L32,24 M34,14 L38,20 M36,28 L44,32 M36,38 L44,42 M36,48 L43,51" stroke="#8f0500" stroke-width="3.5"/><path d="M36,34 L28,29 L30,38 Z M36,34 L44,29 L42,38 Z" fill="#044529"/></svg>`
+            },
+            {
+                day: 4,
+                title: "Ёлочный шар с бантом",
+                wish: "Пусть ваши мечты сияют так же ярко, как новогодние огни на пушистой лесной красавице.",
+                giftSvg: `<svg viewBox="0 0 64 64"><rect x="28" y="10" width="8" height="6" rx="1" fill="#ffecc5" stroke="#562400" stroke-width="1.5"/><circle cx="32" cy="36" r="18" fill="#8f0500" stroke="#562400" stroke-width="1.8"/><path d="M15,34 Q32,42 49,34 M16,42 Q32,50 48,42" fill="none" stroke="#ffecc5" stroke-width="2.5"/><circle cx="24" cy="27" r="2.2" fill="#fffbe9"/><circle cx="32" cy="29" r="2.2" fill="#fffbe9"/><circle cx="40" cy="27" r="2.2" fill="#fffbe9"/><path d="M32,14 L23,9 L25,17 Z M32,14 L41,9 L39,17 Z" fill="#044529"/></svg>`
+            },
+            {
+                day: 5,
+                title: "Подарок с лентой",
+                wish: "Самые ценные подарки упакованы в заботу и внимание близких. Пусть сегодня вас ждёт приятный сюрприз!",
+                giftSvg: `<svg viewBox="0 0 64 64"><rect x="14" y="24" width="36" height="30" rx="3" fill="#044529" stroke="#562400" stroke-width="1.8"/><rect x="11" y="18" width="42" height="8" rx="2" fill="#044529" stroke="#562400" stroke-width="1.8"/><rect x="29" y="18" width="6" height="36" fill="#8f0500"/><path d="M32,18 C22,8 14,14 28,18 M32,18 C42,8 50,14 36,18" fill="none" stroke="#8f0500" stroke-width="3.5" stroke-linecap="round"/></svg>`
+            },
+            {
+                day: 6,
+                title: "Вязаный свитер с ёлкой",
+                wish: "Пусть этой зимой вам всегда будет тепло, уютно и спокойно на душе в любую метель.",
+                giftSvg: `<svg viewBox="0 0 64 64"><path d="M22,12 H42 L54,24 L48,32 L42,26 V52 H22 V26 L16,32 L10,24 Z" fill="#8f0500" stroke="#562400" stroke-width="1.8" stroke-linejoin="round"/><rect x="25" y="10" width="14" height="5" rx="2" fill="#ffecc5" stroke="#562400" stroke-width="1.2"/><polygon points="32,22 25,34 39,34" fill="#044529"/><polygon points="32,30 23,44 41,44" fill="#044529"/><circle cx="32" cy="20" r="2" fill="#ffecc5"/></svg>`
+            },
+            {
+                day: 7,
+                title: "Носок для подарков",
+                wish: "Пора загадывать желания! Пусть каждое из них обязательно найдёт дорогу в ваш праздничный сапожок.",
+                giftSvg: `<svg viewBox="0 0 64 64"><path d="M26,14 H42 V36 C42,46 34,54 22,54 C15,54 12,49 14,43 C16,38 22,36 26,35 Z" fill="#8f0500" stroke="#562400" stroke-width="1.8"/><rect x="23" y="11" width="22" height="8" rx="3" fill="#fffbe9" stroke="#562400" stroke-width="1.5"/><circle cx="34" cy="28" r="3" fill="#044529"/><circle cx="34" cy="38" r="3" fill="#ffecc5"/></svg>`
+            },
+            {
+                day: 8,
+                title: "Зимние коньки",
+                wish: "Лёгкости на каждом шагу, звонкого смеха и вдохновения на катке жизни!",
+                giftSvg: `<svg viewBox="0 0 64 64"><path d="M20,14 H34 V32 C34,36 46,36 48,42 V46 H18 V14 Z" fill="#fffbe9" stroke="#562400" stroke-width="1.8" stroke-linejoin="round"/><path d="M14,52 H52 C55,52 56,49 54,48" fill="none" stroke="#8f0500" stroke-width="2.5" stroke-linecap="round"/><line x1="24" y1="46" x2="24" y2="52" stroke="#562400" stroke-width="2.5"/><line x1="42" y1="46" x2="42" y2="52" stroke="#562400" stroke-width="2.5"/><line x1="26" y1="20" x2="32" y2="20" stroke="#8f0500" stroke-width="2"/><line x1="26" y1="26" x2="32" y2="26" stroke="#8f0500" stroke-width="2"/></svg>`
+            },
+            {
+                day: 9,
+                title: "Золотой колокольчик",
+                wish: "Пусть звон праздничных колокольчиков принесёт в ваш дом добрые вести и радостные встречи.",
+                giftSvg: `<svg viewBox="0 0 64 64"><path d="M32,14 C22,14 18,24 16,38 L12,44 H52 L48,38 C46,24 42,14 32,14 Z" fill="#ffecc5" stroke="#562400" stroke-width="1.8" stroke-linejoin="round"/><circle cx="32" cy="48" r="4.5" fill="#8f0500"/><path d="M32,14 L24,9 L26,16 Z M32,14 L40,9 L38,16 Z" fill="#044529"/><path d="M20,34 Q32,38 44,34" fill="none" stroke="#8f0500" stroke-width="2"/></svg>`
+            },
+            {
+                day: 10,
+                title: "Имбирное печенье",
+                wish: "Немного корицы, имбиря и мёда — рецепт идеального декабрьского настроения!",
+                giftSvg: `<svg viewBox="0 0 64 64"><circle cx="32" cy="34" r="18" fill="#562400" stroke="#8f0500" stroke-width="1.8"/><circle cx="32" cy="34" r="13" fill="none" stroke="#fffbe9" stroke-width="1.8" stroke-dasharray="3 3"/><circle cx="27" cy="30" r="2" fill="#fffbe9"/><circle cx="37" cy="30" r="2" fill="#fffbe9"/><path d="M26,38 Q32,43 38,38" fill="none" stroke="#ffecc5" stroke-width="2" stroke-linecap="round"/><path d="M32,14 L26,10 L28,16 Z M32,14 L38,10 L36,16 Z" fill="#044529"/></svg>`
+            },
+            {
+                day: 11,
+                title: "Рождественский венок",
+                wish: "Пусть круг близких и друзей всегда остаётся крепким, тёплым и полным взаимной поддержки.",
+                giftSvg: `<svg viewBox="0 0 64 64"><circle cx="32" cy="33" r="16" fill="none" stroke="#044529" stroke-width="9"/><circle cx="32" cy="33" r="16" fill="none" stroke="#562400" stroke-width="1.5" stroke-dasharray="4 3"/><circle cx="20" cy="26" r="2.2" fill="#8f0500"/><circle cx="44" cy="28" r="2.2" fill="#8f0500"/><circle cx="22" cy="42" r="2.2" fill="#ffecc5"/><circle cx="42" cy="41" r="2.2" fill="#ffecc5"/><path d="M32,18 L23,12 L25,21 Z M32,18 L41,12 L39,21 Z" fill="#8f0500"/><path d="M30,19 L26,27 M34,19 L38,27" stroke="#8f0500" stroke-width="2.5" stroke-linecap="round"/></svg>`
+            },
+            {
+                day: 12,
+                title: "Рождественская звезда",
+                wish: "Пусть ваша путеводная звезда всегда освещает путь к самым смелым целям и мечтам.",
+                giftSvg: `<svg viewBox="0 0 64 64"><polygon points="32,10 38,24 54,26 42,36 45,52 32,44 19,52 22,36 10,26 26,24" fill="#ffecc5" stroke="#8f0500" stroke-width="2" stroke-linejoin="round"/><circle cx="32" cy="32" r="5" fill="#8f0500"/><circle cx="32" cy="32" r="2" fill="#fffbe9"/></svg>`
+            },
+            {
+                day: 13,
+                title: "Деревянные санки",
+                wish: "Время вспомнить детство и прокатиться с ветерком навстречу новогоднему волшебству!",
+                giftSvg: `<svg viewBox="0 0 64 64"><rect x="14" y="28" width="36" height="5" rx="2" fill="#562400"/><path d="M10,42 H48 C53,42 56,38 54,34" fill="none" stroke="#8f0500" stroke-width="3" stroke-linecap="round"/><line x1="20" y1="33" x2="20" y2="42" stroke="#562400" stroke-width="2.5"/><line x1="42" y1="33" x2="42" y2="42" stroke="#562400" stroke-width="2.5"/><polygon points="32,16 20,28 44,28" fill="#044529"/></svg>`
+            },
+            {
+                day: 14,
+                title: "Тёплая свеча",
+                wish: "Пусть огонёк надежды и домашнего тепла никогда не угасает в вашем сердце.",
+                giftSvg: `<svg viewBox="0 0 64 64"><rect x="23" y="28" width="18" height="24" rx="2" fill="#fffbe9" stroke="#562400" stroke-width="1.8"/><path d="M32,12 C28,18 28,23 32,24 C36,23 36,18 32,12 Z" fill="#8f0500"/><ellipse cx="32" cy="52" rx="14" ry="3.5" fill="#044529"/><path d="M23,35 Q32,39 41,35" fill="none" stroke="#8f0500" stroke-width="2"/></svg>`
+            },
+            {
+                day: 15,
+                title: "Северный олень",
+                wish: "Упряжка чудес уже в пути! Готовьте место для самых светлых впечатлений уходящего года.",
+                giftSvg: `<svg viewBox="0 0 64 64"><ellipse cx="32" cy="36" rx="11" ry="13" fill="#562400"/><circle cx="32" cy="24" r="9" fill="#562400"/><circle cx="32" cy="27" r="3" fill="#8f0500"/><circle cx="28" cy="22" r="1.5" fill="#fffbe9"/><circle cx="36" cy="22" r="1.5" fill="#fffbe9"/><path d="M27,16 L22,8 M24,12 L19,12 M37,16 L42,8 M40,12 L45,12" stroke="#562400" stroke-width="2.5" stroke-linecap="round"/><path d="M23,40 Q32,45 41,40" fill="none" stroke="#044529" stroke-width="3.5" stroke-linecap="round"/></svg>`
+            },
+            {
+                day: 16,
+                title: "Рождественский кекс",
+                wish: "Пусть каждый кусочек праздника будет щедрым на радость, здоровье и благополучие!",
+                giftSvg: `<svg viewBox="0 0 64 64"><path d="M18,28 H46 L49,50 H15 Z" fill="#562400" stroke="#8f0500" stroke-width="1.5"/><path d="M16,28 C16,22 48,22 48,28 C48,33 43,35 40,31 C37,35 33,35 32,31 C30,35 26,35 24,31 C21,35 16,33 16,28 Z" fill="#fffbe9"/><circle cx="32" cy="20" r="3" fill="#8f0500"/><path d="M32,20 L25,16 L28,22 Z M32,20 L39,16 L36,22 Z" fill="#044529"/></svg>`
+            },
+            {
+                day: 17,
+                title: "Хвойная веточка",
+                wish: "Вдохните свежий аромат хвои и мандаринов — праздник уже стучится в дверь!",
+                giftSvg: `<svg viewBox="0 0 64 64"><path d="M16,48 Q32,32 48,16" fill="none" stroke="#562400" stroke-width="2.5" stroke-linecap="round"/><path d="M22,42 L16,32 M22,42 L32,46 M30,34 L24,22 M30,34 L42,38 M38,26 L33,15 M38,26 L49,29" stroke="#044529" stroke-width="3" stroke-linecap="round"/><circle cx="29" cy="36" r="2.8" fill="#8f0500"/><circle cx="35" cy="32" r="2.8" fill="#8f0500"/><circle cx="32" cy="40" r="2.5" fill="#ffecc5"/></svg>`
+            },
+            {
+                day: 18,
+                title: "Пушистая варежка",
+                wish: "Пусть рядом всегда будет человек, с которым можно поделиться теплом своих рук и сердца.",
+                giftSvg: `<svg viewBox="0 0 64 64"><path d="M24,14 A11,11 0 0,1 46,25 V44 H24 V35 L17,31 A4,4 0 0,1 21,24 L24,26 Z" fill="#044529" stroke="#562400" stroke-width="1.8" stroke-linejoin="round"/><rect x="22" y="42" width="26" height="8" rx="3" fill="#fffbe9" stroke="#562400" stroke-width="1.5"/><circle cx="35" cy="26" r="3.5" fill="#8f0500"/></svg>`
+            },
+            {
+                day: 19,
+                title: "Лошадка-качалка",
+                wish: "Пусть новый год принесёт лёгкость, удачу и смелость воплощать самые заветные идеи!",
+                giftSvg: `<svg viewBox="0 0 64 64"><path d="M14,48 Q32,56 50,48" fill="none" stroke="#8f0500" stroke-width="3.5" stroke-linecap="round"/><rect x="22" y="28" width="18" height="10" rx="4" fill="#ffecc5" stroke="#562400" stroke-width="1.8"/><path d="M36,30 L42,18 L48,22 L42,32 Z" fill="#ffecc5" stroke="#562400" stroke-width="1.8"/><line x1="25" y1="38" x2="23" y2="50" stroke="#562400" stroke-width="2.5"/><line x1="37" y1="38" x2="39" y2="50" stroke="#562400" stroke-width="2.5"/><rect x="28" y="27" width="6" height="6" fill="#044529"/></svg>`
+            },
+            {
+                day: 20,
+                title: "Гирлянда огоньков",
+                wish: "Пусть каждый вечер будет подсвечен тёплыми огоньками радости и гармонии.",
+                giftSvg: `<svg viewBox="0 0 64 64"><path d="M10,22 Q32,42 54,22" fill="none" stroke="#044529" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="18" cy="30" rx="3.5" ry="5.5" fill="#8f0500" stroke="#562400" stroke-width="1"/><ellipse cx="32" cy="37" rx="3.5" ry="5.5" fill="#ffecc5" stroke="#562400" stroke-width="1"/><ellipse cx="46" cy="30" rx="3.5" ry="5.5" fill="#fffbe9" stroke="#562400" stroke-width="1"/></svg>`
+            },
+            {
+                day: 21,
+                title: "Резная снежинка",
+                wish: "Каждый день неповторим, как узор зимней снежинки. Цените прекрасные мгновения!",
+                giftSvg: `<svg viewBox="0 0 64 64" stroke="#044529" stroke-width="2.5" stroke-linecap="round"><line x1="32" y1="10" x2="32" y2="54"/><line x1="10" y1="32" x2="54" y2="32"/><line x1="16" y1="16" x2="48" y2="48"/><line x1="48" y1="16" x2="16" y2="48"/><path d="M27,16 L32,21 L37,16 M27,48 L32,43 L37,48 M16,27 L21,32 L16,37 M48,27 L43,32 L48,37" fill="none"/><circle cx="32" cy="32" r="4" fill="#8f0500" stroke="none"/></svg>`
+            },
+            {
+                day: 22,
+                title: "Письмо с сургучом",
+                wish: "Напишите себе письмо благодарности за все победы и тёплые моменты этого года.",
+                giftSvg: `<svg viewBox="0 0 64 64"><rect x="12" y="18" width="40" height="28" rx="3" fill="#fffbe9" stroke="#562400" stroke-width="1.8"/><path d="M12,18 L32,34 L52,18" fill="none" stroke="#562400" stroke-width="1.8"/><circle cx="32" cy="34" r="5.5" fill="#8f0500" stroke="#ffecc5" stroke-width="1.2"/></svg>`
+            },
+            {
+                day: 23,
+                title: "Снежный сувенир",
+                wish: "Чудеса совсем близко — осталось всего одно окошко до главного праздника!",
+                giftSvg: `<svg viewBox="0 0 64 64"><circle cx="32" cy="28" r="16" fill="#fffbe9" stroke="#044529" stroke-width="2"/><polygon points="32,17 24,33 40,33" fill="#044529"/><path d="M20,44 H44 L47,52 H17 Z" fill="#8f0500" stroke="#562400" stroke-width="1.5"/><circle cx="26" cy="23" r="1.5" fill="#8f0500"/><circle cx="38" cy="25" r="1.5" fill="#8f0500"/></svg>`
+            },
+            {
+                day: 24,
+                title: "Новогодняя ёлка",
+                wish: "С наступающим праздником! Пусть в новом году сбудутся все самые светлые и заветные мечты!",
+                giftSvg: `<svg viewBox="0 0 64 64"><rect x="29" y="48" width="6" height="7" fill="#562400"/><polygon points="32,13 21,27 43,27" fill="#044529"/><polygon points="32,22 17,38 47,38" fill="#044529"/><polygon points="32,32 13,49 51,49" fill="#044529"/><polygon points="32,6 34,10 38,10 35,13 36,17 32,14 28,17 29,13 26,10 30,10" fill="#8f0500"/><circle cx="28" cy="24" r="2.2" fill="#ffecc5"/><circle cx="36" cy="33" r="2.2" fill="#8f0500"/><circle cx="25" cy="43" r="2.5" fill="#fffbe9"/><circle cx="39" cy="44" r="2.2" fill="#ffecc5"/></svg>`
+            }
+        ];
+
+        // --- ЛИНЕАРНЫЕ КРАСНЫЕ ГРАВЮРЫ ДЛЯ ЗАКРЫТЫХ ОКОШЕК (В СТИЛЕ РЕФЕРЕНСА) ---
+        const LINE_ART_SVGS = [
+            // 1. Машинка с ёлкой на крыше
+            `<svg viewBox="0 0 48 48"><path d="M8,32 H40 V26 L34,21 H16 L10,26 Z"/><circle cx="15" cy="33" r="4"/><circle cx="33" cy="33" r="4"/><polygon points="24,10 16,19 32,19"/><line x1="12" y1="15" x2="36" y2="15"/></svg>`,
+            // 2. Подарок с бантом
+            `<svg viewBox="0 0 48 48"><rect x="11" y="18" width="26" height="20" rx="2"/><line x1="24" y1="18" x2="24" y2="38"/><line x1="11" y1="27" x2="37" y2="27"/><path d="M24,18 C18,11 13,15 21,18 M24,18 C30,11 35,15 27,18"/></svg>`,
+            // 3. Кружка какао с тростью
+            `<svg viewBox="0 0 48 48"><path d="M13,20 H33 V33 A8,8 0 0,1 25,41 H21 A8,8 0 0,1 13,33 Z"/><path d="M33,23 H37 A4,4 0 0,1 37,31 H33"/><path d="M24,20 V13 A4,4 0 0,1 32,13 V15"/></svg>`,
+            // 4. Рождественский носок
+            `<svg viewBox="0 0 48 48"><path d="M20,10 H32 V27 C32,34 26,39 18,39 C13,39 11,35 13,31 C14,28 18,27 20,26 Z"/><line x1="19" y1="15" x2="33" y2="15"/></svg>`,
+            // 5. Ажурная снежинка
+            `<svg viewBox="0 0 48 48"><line x1="24" y1="8" x2="24" y2="40"/><line x1="8" y1="24" x2="40" y2="24"/><line x1="13" y1="13" x2="35" y2="35"/><line x1="35" y1="13" x2="13" y2="35"/><circle cx="24" cy="24" r="4"/></svg>`,
+            // 6. Бокал с искрой
+            `<svg viewBox="0 0 48 48"><path d="M17,11 H31 L29,23 A5,5 0 0,1 19,23 Z"/><line x1="24" y1="28" x2="24" y2="38"/><line x1="18" y1="38" x2="30" y2="38"/></svg>`
+        ];
+
+        // Мини-венок (#044529 + красный бант #8f0500) для чередования в закрытых окошках
+        const WREATH_SVG = `
+            <svg viewBox="0 0 56 56" width="100%" height="100%">
+                <circle cx="28" cy="29" r="15" fill="none" stroke="#044529" stroke-width="8"/>
+                <circle cx="28" cy="29" r="15" fill="none" stroke="#ffecc5" stroke-width="1" stroke-dasharray="3 3"/>
+                <circle cx="17" cy="24" r="2" fill="#8f0500"/>
+                <circle cx="39" cy="25" r="2" fill="#8f0500"/>
+                <circle cx="20" cy="38" r="2" fill="#fffbe9"/>
+                <circle cx="36" cy="37" r="2" fill="#fffbe9"/>
+                <path d="M28,15 L20,10 L22,18 Z M28,15 L36,10 L34,18 Z" fill="#8f0500"/>
+                <path d="M26,16 L23,23 M30,16 L33,23" stroke="#8f0500" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>
+        `;
+
+        // --- СОХРАНЕНИЕ ПРОГРЕССА В LOCALSTORAGE ---
+        const STORAGE_KEY = 'advent_calendar_opened_days_v2';
+        let openedDays = new Set();
+
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed)) {
+                    openedDays = new Set(parsed);
+                }
+            }
+        } catch (e) {
+            console.warn('Не удалось прочитать localStorage', e);
+        }
+
+        function saveProgress() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(openedDays)));
+            } catch (e) {
+                console.warn('Не удалось сохранить в localStorage', e);
+            }
+            updateCounterUI();
+        }
+
+        const openedCounter = document.getElementById('openedCounter');
+        function updateCounterUI() {
+            openedCounter.innerText = `Открыто окошек: ${openedDays.size} из 24`;
+        }
+
+        // --- МОДАЛЬНОЕ ОКНО ДНЯ ---
+        const dayModal = document.getElementById('dayModal');
+        const modalDayBadge = document.getElementById('modalDayBadge');
+        const modalIllustration = document.getElementById('modalIllustration');
+        const modalGiftTitle = document.getElementById('modalGiftTitle');
+        const modalGiftWish = document.getElementById('modalGiftWish');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+        function openDayModal(dayData) {
+            modalDayBadge.innerText = `День ${dayData.day} из 24`;
+            modalIllustration.innerHTML = dayData.giftSvg;
+            modalGiftTitle.innerText = dayData.title;
+            modalGiftWish.innerText = dayData.wish;
+            dayModal.classList.add('active');
+        }
+
+        function closeDayModal() {
+            dayModal.classList.remove('active');
+            triggerHaptic('light');
+        }
+
+        modalCloseBtn.addEventListener('click', closeDayModal);
+        dayModal.addEventListener('click', (e) => {
+            if (e.target === dayModal) closeDayModal();
+        });
+
+        // --- ПОСТРОЕНИЕ АРХИТЕКТУРНОГО ФАСАДА ДОМА (8 ЭТАЖЕЙ ПО 3 ОКНА = 24 ДНЯ) ---
+        const houseFacade = document.getElementById('houseFacade');
+
+        function renderMansion() {
+            houseFacade.innerHTML = '';
+            const totalFloors = 8;
+            const colsPerFloor = 3;
+
+            for (let floor = 0; floor < totalFloors; floor++) {
+                const row = document.createElement('div');
+                row.className = 'floor-row';
+
+                for (let col = 0; col < colsPerFloor; col++) {
+                    // Нумерация сверху вниз от 24 до 1 (как на высоком зимнем доме) или от 1 до 24
+                    // Сделаем классический порядок 1–24 сверху вниз для интуитивной навигации
+                    const dayIndex = floor * colsPerFloor + col;
+                    const dayData = ADVENT_DAYS[dayIndex];
+                    const dayNum = dayData.day;
+                    const isOpened = openedDays.has(dayNum);
+
+                    const cell = document.createElement('div');
+                    cell.className = 'window-cell';
+                    if (floor % 2 === 0) cell.classList.add('arched');
+                    if ((floor + col) % 2 === 1) cell.classList.add('has-shutters');
+                    if (isOpened) cell.classList.add('opened');
+
+                    // Табличка с номером дня
+                    const plaque = document.createElement('div');
+                    plaque.className = 'day-plaque';
+                    plaque.innerText = dayNum < 10 ? `0${dayNum}` : `${dayNum}`;
+
+                    // Закрытая створка окна (чередуем рождественский венок и красную линеарную гравюру)
+                    const closedPane = document.createElement('div');
+                    closedPane.className = 'closed-pane';
+
+                    const crossV = document.createElement('div');
+                    crossV.className = 'pane-cross-v';
+                    const crossH = document.createElement('div');
+                    crossH.className = 'pane-cross-h';
+                    closedPane.appendChild(crossV);
+                    closedPane.appendChild(crossH);
+
+                    if ((dayNum + floor) % 2 === 0) {
+                        const wreath = document.createElement('div');
+                        wreath.className = 'wreath-badge';
+                        wreath.innerHTML = WREATH_SVG;
+                        closedPane.appendChild(wreath);
+                    } else {
+                        const engraving = document.createElement('div');
+                        engraving.className = 'engraving-card';
+                        engraving.innerHTML = LINE_ART_SVGS[dayNum % LINE_ART_SVGS.length];
+                        closedPane.appendChild(engraving);
+                    }
+
+                    // Открытая комната с тёплым светом и иллюстрацией подарка
+                    const openedRoom = document.createElement('div');
+                    openedRoom.className = 'opened-room';
+                    openedRoom.innerHTML = dayData.giftSvg;
+
+                    cell.appendChild(plaque);
+                    cell.appendChild(closedPane);
+                    cell.appendChild(openedRoom);
+
+                    // Клик по окошку
+                    cell.addEventListener('click', () => {
+                        if (!openedDays.has(dayNum)) {
+                            openedDays.add(dayNum);
+                            cell.classList.add('opened');
+                            saveProgress();
+                            triggerHaptic('medium');
+                            // Небольшая задержка перед открытием карточки, чтобы увидеть распахивание окна
+                            setTimeout(() => openDayModal(dayData), 280);
+                        } else {
+                            triggerHaptic('light');
+                            openDayModal(dayData);
+                        }
+                    });
+
+                    row.appendChild(cell);
+                }
+
+                houseFacade.appendChild(row);
+
+                // Межэтажный карниз после каждого этажа (кроме последнего)
+                if (floor < totalFloors - 1) {
+                    const cornice = document.createElement('div');
+                    cornice.className = 'floor-cornice';
+                    houseFacade.appendChild(cornice);
+                }
+            }
+
+            // Парадный цоколь с кнопкой сброса прогресса
+            const entrance = document.createElement('div');
+            entrance.className = 'grand-entrance-banner';
+            entrance.innerHTML = `
+                <div class="entrance-text">Нажмите на любое окошко дома, чтобы зажечь свет и открыть подарок.</div>
+                <button class="reset-btn" id="resetProgressBtn" type="button">Закрыть все</button>
+            `;
+            houseFacade.appendChild(entrance);
+
+            document.getElementById('resetProgressBtn').addEventListener('click', () => {
+                openedDays.clear();
+                saveProgress();
+                triggerHaptic('light');
+                renderMansion();
+            });
+        }
+
+        // Инициализация интерфейса
+        updateCounterUI();
+        renderMansion();
+    </script>
+</body>
+</html>
