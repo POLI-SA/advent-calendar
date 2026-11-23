@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Christmas Advent — Изометрическая деревушка</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --night-bg: #1a2744;
+            --sky-top: #4f86f7;
+            --sky-mid: #8da4ef;
+            --sky-low: #c7b8ea;
+            --mountain-teal: #639cb5;
+            --mountain-lavender: #7f8bc2;
+            --snow-white: #ffffff;
+            --road-ice: #edf3f8;
+            --house-pink: #f5a3b7;
+            --house-blue: #8ec5e8;
+            --house-navy: #1e2f5c;
+            --house-cream: #fdf3d7;
+            --house-crimson: #d94e67;
+            --tree-mint: #84c7b8;
+            --tree-pine: #2d7a6d;
+            --gold-glow: #ffd166;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--night-bg);
+            font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--snow-white);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* =========================================================
+           1. ЭКРАН ЗАГРУЗКИ (СНЕЖНЫЙ ШАР -> ZOOM-IN В ГОРОД)
+           ========================================================= */
+        #loader-screen {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at 50% 42%, #2b3f6b 0%, var(--night-bg) 72%);
+            z-index: 50;
+            overflow: hidden;
+            transition: opacity 0.6s ease-out;
+        }
+
+        .globe-ambient-aura {
+            position: absolute;
+            width: 340px;
+            height: 340px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(141, 164, 239, 0.28) 0%, rgba(199, 184, 234, 0.08) 55%, transparent 75%);
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .globe-stage {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform-origin: 50% 46%;
+            will-change: transform, opacity;
+        }
+
+        #loader-screen.zooming-in .globe-stage {
+            animation: zoomIntoVillage 1.35s cubic-bezier(0.65, 0, 0.25, 1) forwards;
+        }
+
+        #loader-screen.zooming-in .loader-ui-panel,
+        #loader-screen.zooming-in .globe-pedestal,
+        #loader-screen.zooming-in .globe-ambient-aura {
+            opacity: 0;
+            transition: opacity 0.4s ease-out;
+        }
+
+        #loader-screen.zooming-in .snow-globe {
+            border-color: rgba(255, 255, 255, 0);
+            box-shadow: none;
+            transition: border-color 0.45s ease, box-shadow 0.45s ease;
+        }
+
+        @keyframes zoomIntoVillage {
+            0% { transform: scale(1) translateY(0); opacity: 1; }
+            65% { transform: scale(3.4) translateY(-14px); opacity: 1; }
+            100% { transform: scale(5.6) translateY(-22px); opacity: 0; }
+        }
+
+        .snow-globe {
+            width: 268px;
+            height: 268px;
+            border-radius: 50%;
+            background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 52%, var(--sky-low) 100%);
+            border: 4px solid rgba(255, 255, 255, 0.65);
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 12px 26px rgba(255, 255, 255, 0.45), inset 0 -16px 28px rgba(30, 47, 92, 0.45), 0 18px 42px rgba(10, 16, 32, 0.65);
+            z-index: 2;
+        }
+
+        .globe-glare-left {
+            position: absolute; top: 22px; left: 28px; width: 78px; height: 38px;
+            border-top: 5px solid rgba(255, 255, 255, 0.72);
+            border-left: 3px solid rgba(255, 255, 255, 0.35);
+            border-radius: 50%; transform: rotate(-32deg); z-index: 5; pointer-events: none;
+        }
+
+        .globe-glare-right {
+            position: absolute; top: 42px; right: 26px; width: 18px; height: 44px;
+            background: rgba(255, 255, 255, 0.42); border-radius: 999px;
+            transform: rotate(-24deg); z-index: 5; pointer-events: none;
+        }
+
+        .mini-village-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; }
+
+        #snowCanvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 4; pointer-events: none; }
+
+        .globe-pedestal { width: 196px; height: 54px; margin-top: -16px; position: relative; z-index: 3; }
+
+        .loader-ui-panel { margin-top: 24px; width: 240px; text-align: center; z-index: 6; }
+
+        .progress-container {
+            width: 100%; height: 7px; background: rgba(255, 255, 255, 0.16);
+            border-radius: 999px; overflow: hidden; backdrop-filter: blur(4px);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .progress-bar {
+            height: 100%; width: 0%; background: linear-gradient(90deg, var(--sky-mid), var(--snow-white));
+            border-radius: 999px; transition: width 0.16s ease-out; box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+        }
+
+        .loading-text { margin-top: 10px; font-size: 13px; font-weight: 500; letter-spacing: 0.03em; color: rgba(255, 255, 255, 0.9); }
+
+        /* =========================================================
+           2. ОСНОВНОЙ ЭКРАН (ОЖИВАЮЩИЙ ГОРОД 1–24 ДЕКАБРЯ)
+           ========================================================= */
+        #main-screen {
+            opacity: 0; height: 100dvh; width: 100vw; overflow-y: auto; overflow-x: hidden;
+            background-color: var(--road-ice); color: var(--house-navy);
+            transition: opacity 0.75s ease-out; position: relative;
+        }
+
+        .hero-village-section {
+            position: relative; width: 100%; min-height: clamp(540px, 78dvh, 880px);
+            background: linear-gradient(180deg, #3b72eb 0%, #5687f2 22%, #7e9ef2 42%, #a8b3ee 56%, #cbb9eb 66%, #ffffff 68%, #ffffff 100%);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        @media (min-width: 768px) { .hero-village-section { min-height: clamp(640px, 84dvh, 960px); } }
+
+        .hero-sky-backdrop { position: absolute; top: 0; left: 0; width: 100%; height: 68%; pointer-events: none; z-index: 1; overflow: hidden; }
+        .hero-sky-backdrop svg { width: 100%; height: 100%; display: block; }
+
+        @keyframes twinkleStar { 0%, 100% { opacity: 0.35; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.15); } }
+        @keyframes gentleSnowDrift { 0% { transform: translateY(-16px) translateX(0); opacity: 0; } 15% { opacity: 0.85; } 85% { opacity: 0.85; } 100% { transform: translateY(320px) translateX(16px); opacity: 0; } }
+
+        .sky-star { transform-box: fill-box; transform-origin: center; animation: twinkleStar 3.8s ease-in-out infinite; }
+        .sky-snow-flake { animation: gentleSnowDrift 9s linear infinite; }
+
+        .village-header {
+            position: relative; z-index: 15; width: 100%; max-width: 1200px; margin: 0 auto;
+            padding: clamp(16px, 3vw, 32px) clamp(16px, 4vw, 40px) 6px;
+            display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+            color: var(--snow-white); pointer-events: none;
+        }
+
+        .header-left { max-width: min(68%, 480px); pointer-events: auto; }
+        .brand-tag { font-size: clamp(11px, 1.4vw, 13px); font-weight: 600; letter-spacing: 0.05em; opacity: 0.9; margin-bottom: 6px; display: inline-block; }
+        .hero-title { margin: 0 0 8px; font-size: clamp(26px, 5vw, 46px); font-weight: 300; letter-spacing: -0.02em; line-height: 1.06; color: var(--snow-white); text-shadow: 0 2px 14px rgba(30, 47, 92, 0.22); }
+        .hero-subtitle { margin: 0; font-size: clamp(12px, 1.6vw, 14px); line-height: 1.48; font-weight: 400; color: rgba(255, 255, 255, 0.95); }
+        .hero-subtitle strong { font-weight: 700; }
+
+        .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; pointer-events: auto; }
+        .big-day-counter { font-size: clamp(32px, 6vw, 54px); font-weight: 800; line-height: 0.95; color: var(--snow-white); text-shadow: 0 3px 14px rgba(30, 47, 92, 0.24); }
+        .counter-caption { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.92; }
+
+        .header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin-top: 2px; }
+
+        .glass-pill-btn {
+            background: rgba(255, 255, 255, 0.22); border: 1px solid rgba(255, 255, 255, 0.45);
+            color: var(--snow-white); border-radius: 8px; padding: 6px 11px;
+            font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 600;
+            cursor: pointer; backdrop-filter: blur(6px); transition: background 0.2s, transform 0.15s;
+        }
+        .glass-pill-btn:active { transform: scale(0.95); background: rgba(255, 255, 255, 0.35); }
+
+        .map-viewport-container {
+            position: relative; width: 100%; flex: 1; min-height: 410px; height: clamp(430px, 64dvh, 760px);
+            margin-top: -18px; overflow: hidden; touch-action: none; cursor: grab; user-select: none; z-index: 6;
+        }
+        .map-viewport-container:active { cursor: grabbing; }
+
+        .map-transform-layer { position: absolute; top: 0; left: 0; width: 1440px; height: 920px; transform-origin: 0 0; will-change: transform; }
+
+        #villageSvg { width: 1440px; height: 920px; overflow: visible; display: block; }
+
+        .dayBuilding { cursor: pointer; transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.6s ease, opacity 0.5s ease; }
+
+        /* Концепция заброшенного зимнего города: неоткрытые домики — благородно-серые, а открытые возвращают 100% сочных цветов */
+        .dayBuilding.abandoned {
+            filter: url(#buildingDropShadow) grayscale(0.95) brightness(0.93) contrast(0.92);
+            opacity: 0.9;
+        }
+
+        .dayBuilding .outerGlow { opacity: 0; transition: opacity 0.3s ease-out; pointer-events: none; }
+        .dayBuilding:hover .outerGlow, .dayBuilding:active .outerGlow, .dayBuilding.highlighted .outerGlow { opacity: 1; }
+
+        /* Состояние открытого (ожившего) домика: оригинальные яркие цвета, золотое свечение + тёплый свет в окнах */
+        .dayBuilding.opened {
+            filter: url(#buildingDropShadow);
+            opacity: 1;
+        }
+        .dayBuilding.opened .outerGlow { opacity: 0.92; }
+        .dayBuilding .win-pane { fill: var(--house-navy); transition: fill 0.4s ease; }
+        .dayBuilding.opened .win-pane { fill: #ffe082; }
+
+        /* Жители города (у домиков и на улицах): появляются постепенно с каждым открытым днём */
+        .house-townsfolk,
+        .street-townsperson {
+            opacity: 0;
+            transform: translateY(6px) scale(0.75);
+            transform-box: fill-box;
+            transform-origin: center bottom;
+            transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+        }
+        .dayBuilding.opened .house-townsfolk,
+        .street-townsperson.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* Гирлянды на площади и главной ёлке: мягко мерцают и ярче загораются с каждым открытым днём */
+        @keyframes garlandTwinkle {
+            0%, 100% { opacity: 0.45; transform: scale(0.92); }
+            50% { opacity: 1; transform: scale(1.22); }
+        }
+        .garland-bulb {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: garlandTwinkle 2.4s ease-in-out infinite;
+        }
+        .village-garlands-group {
+            opacity: 0.25;
+            transition: opacity 0.8s ease;
+        }
+        .village-garlands-group.lit {
+            opacity: 1;
+        }
+
+        .dayBuilding .day-num-text { font-family: 'Montserrat', sans-serif; font-weight: 800; fill: var(--snow-white); pointer-events: none; user-select: none; filter: drop-shadow(0 1px 2px rgba(30, 47, 92, 0.35)); transition: fill 0.3s ease; }
+        .dayBuilding.opened .day-num-text { fill: #fff7d6; }
+        .dayBuilding .opened-star-badge { opacity: 0; transform: scale(0.5); transform-box: fill-box; transform-origin: center; transition: opacity 0.35s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .dayBuilding.opened .opened-star-badge { opacity: 1; transform: scale(1); }
+
+        /* Полноэкранный слой периодического снегопада над городом (каждые 2 минуты) */
+        #villageSnowOverlay {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out;
+        }
+        #villageSnowOverlay.snowing { opacity: 1; }
+
+        /* Toast-уведомление для заблокированных будущих дней (до декабря / будущая дата) */
+        .village-toast {
+            position: fixed;
+            bottom: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(16px);
+            background: rgba(30, 47, 92, 0.94);
+            color: var(--snow-white);
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 12.5px;
+            font-weight: 600;
+            box-shadow: 0 10px 26px rgba(14, 22, 42, 0.32);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            z-index: 85;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            text-align: center;
+            max-width: 90vw;
+        }
+        .village-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        .map-zoom-controls { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 6px; z-index: 12; }
+        .zoom-btn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(30, 47, 92, 0.14); background: rgba(255, 255, 255, 0.92); color: var(--house-navy); font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(30, 47, 92, 0.14); transition: transform 0.15s, background 0.2s; }
+        .zoom-btn:active { transform: scale(0.92); background: var(--road-ice); }
+
+        .map-gesture-hint { position: absolute; left: 14px; bottom: 14px; background: rgba(30, 47, 92, 0.78); color: var(--snow-white); font-size: 11px; font-weight: 500; padding: 6px 11px; border-radius: 999px; backdrop-filter: blur(4px); pointer-events: none; z-index: 12; transition: opacity 0.5s ease; }
+
+        .quick-days-dock { background: var(--snow-white); border-top: 1px solid rgba(30, 47, 92, 0.08); border-bottom: 1px solid rgba(30, 47, 92, 0.08); padding: 10px 14px; position: sticky; top: 0; z-index: 20; box-shadow: 0 4px 14px rgba(30, 47, 92, 0.06); }
+        .dock-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; max-width: 960px; margin-left: auto; margin-right: auto; }
+        .dock-label { font-size: 11.5px; font-weight: 700; color: var(--house-navy); }
+        .dock-sub { font-size: 11px; color: var(--mountain-teal); font-weight: 600; }
+
+        .days-ribbon-scroll { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 4px; max-width: 960px; margin: 0 auto; scrollbar-width: none; }
+        .days-ribbon-scroll::-webkit-scrollbar { display: none; }
+        .day-chip { flex: 0 0 auto; min-width: 36px; height: 36px; border-radius: 10px; border: 1.5px solid rgba(30, 47, 92, 0.14); background: var(--road-ice); color: var(--house-navy); font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; }
+        .day-chip:active { transform: scale(0.92); }
+        .day-chip.opened { background: linear-gradient(135deg, var(--sky-top), var(--mountain-lavender)); color: var(--snow-white); border-color: transparent; box-shadow: 0 3px 8px rgba(79, 134, 247, 0.32); }
+        .day-chip.active-focus { outline: 2.5px solid var(--gold-glow); outline-offset: 1px; }
+
+        .almanac-section { max-width: 960px; margin: 0 auto; padding: 28px 16px 48px; }
+        .almanac-header { text-align: center; margin-bottom: 22px; }
+        .almanac-title { margin: 0 0 6px; font-size: 24px; font-weight: 400; color: var(--house-navy); }
+        .almanac-desc { margin: 0 auto; max-width: 480px; font-size: 12.5px; line-height: 1.5; color: #5b6b88; }
+        .almanac-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+        @media (min-width: 420px) { .almanac-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; } }
+        @media (min-width: 768px) { .almanac-grid { grid-template-columns: repeat(4, 1fr); gap: 18px; } }
+
+        .almanac-card { background: var(--snow-white); border-radius: 10px; overflow: hidden; box-shadow: 0 6px 18px rgba(30, 47, 92, 0.08); display: flex; flex-direction: column; cursor: pointer; transition: transform 0.22s ease, box-shadow 0.22s ease; border: 1px solid rgba(30, 47, 92, 0.06); }
+        .almanac-card:active { transform: scale(0.97); }
+        .almanac-card-art { height: 128px; width: 100%; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .almanac-card-art svg { width: 100%; height: 100%; display: block; }
+        .almanac-card.locked .almanac-card-art { background: linear-gradient(135deg, #dce6f2 0%, #e9eff7 100%); }
+        .almanac-card-body { padding: 14px 12px 16px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .almanac-date { font-size: 20px; font-weight: 400; color: var(--house-navy); margin: 0 0 6px; }
+        .almanac-question { font-size: 11.5px; line-height: 1.4; color: #5b6b88; margin: 0; }
+
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(26, 39, 68, 0.72); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 90; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .modal-backdrop.active { opacity: 1; pointer-events: auto; }
+        .trivia-modal-card { width: 100%; max-width: 360px; background: var(--snow-white); border-radius: 18px; overflow: hidden; box-shadow: 0 24px 48px rgba(14, 22, 42, 0.45); transform: translateY(20px) scale(0.95); transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); color: var(--house-navy); }
+        .modal-backdrop.active .trivia-modal-card { transform: translateY(0) scale(1); }
+        .modal-art-banner { height: 164px; width: 100%; position: relative; }
+        .modal-art-banner svg { width: 100%; height: 100%; display: block; }
+        .modal-content-box { padding: 20px 22px 22px; text-align: center; }
+        .modal-date-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sky-top); margin-bottom: 4px; }
+        .modal-fact-title { margin: 0 0 10px; font-size: 21px; font-weight: 700; color: var(--house-navy); line-height: 1.2; }
+        .modal-fact-text { margin: 0 0 18px; font-size: 13.5px; line-height: 1.55; color: #4b5b78; }
+        .modal-gift-pill { display: inline-flex; align-items: center; gap: 6px; background: var(--house-cream); border: 1px solid #f0dca8; color: var(--house-navy); font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 999px; margin-bottom: 18px; }
+        .modal-primary-btn { width: 100%; border: none; border-radius: 12px; padding: 13px 16px; background: linear-gradient(135deg, var(--sky-top) 0%, #687ae8 100%); color: var(--snow-white); font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 6px 16px rgba(79, 134, 247, 0.35); transition: transform 0.15s ease; }
+        .modal-primary-btn:active { transform: scale(0.97); }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="loader-screen">
+        <div class="globe-ambient-aura"></div>
+        <div class="globe-stage" id="globeStage">
+            <div class="snow-globe" id="globe">
+                <div class="globe-glare-left"></div>
+                <div class="globe-glare-right"></div>
+                <svg class="mini-village-svg" viewBox="0 0 268 268" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M188,54 A8,8 0 1,0 198,64 A6.5,6.5 0 1,1 188,54 Z" fill="#ffffff" opacity="0.9"/>
+                    <circle cx="72" cy="48" r="1.5" fill="#ffffff" opacity="0.8"/>
+                    <circle cx="118" cy="36" r="1.8" fill="#ffffff" opacity="0.7"/>
+                    <circle cx="215" cy="76" r="1.4" fill="#ffffff" opacity="0.8"/>
+                    <polygon points="10,152 72,96 136,146 196,92 260,152 260,180 10,180" fill="#7f8bc2"/>
+                    <polygon points="-10,162 48,112 118,158 176,118 242,102 280,158 280,195 -10,195" fill="#639cb5"/>
+                    <path d="M-10,164 Q68,144 138,162 Q206,178 278,150 L278,275 L-10,275 Z" fill="#ffffff"/>
+                    <polygon points="24,195 134,148 244,195 134,244" fill="none" stroke="#edf3f8" stroke-width="11" stroke-linejoin="round"/>
+                    <line x1="80" y1="171" x2="188" y2="219" stroke="#edf3f8" stroke-width="9"/>
+                    <line x1="188" y1="171" x2="80" y2="219" stroke="#edf3f8" stroke-width="9"/>
+                    <polygon points="48,148 41,164 55,164" fill="#84c7b8"/>
+                    <polygon points="222,146 215,162 229,162" fill="#84c7b8"/>
+                    <polygon points="62,216 54,234 70,234" fill="#84c7b8"/>
+                    <polygon points="208,214 200,232 216,232" fill="#84c7b8"/>
+                    <g transform="translate(64, 134)"><polygon points="0,16 18,8 36,16 18,24" fill="#ffffff"/><polygon points="0,16 18,24 18,46 0,38" fill="#8ec5e8"/><polygon points="18,24 36,16 36,38 18,46" fill="#6ca9d4"/></g>
+                    <g transform="translate(88, 124)"><polygon points="0,16 18,8 36,16 18,24" fill="#d94e67"/><polygon points="0,16 18,24 18,46 0,38" fill="#f5a3b7"/><polygon points="18,24 36,16 36,38 18,46" fill="#e2879e"/></g>
+                    <g transform="translate(46, 166)"><polygon points="0,14 14,6 28,14 14,22" fill="#1e2f5c"/><polygon points="0,14 14,22 14,50 0,42" fill="#1e2f5c"/><polygon points="14,22 28,14 28,42 14,50" fill="#2c427a"/><circle cx="14" cy="11" r="2" fill="#ffd166"/></g>
+                    <g transform="translate(114, 152)"><polygon points="0,16 18,8 36,16 18,24" fill="#1e2f5c"/><polygon points="0,16 18,24 18,46 0,38" fill="#d94e67"/><polygon points="18,24 36,16 36,38 18,46" fill="#fdf3d7"/></g>
+                    <g transform="translate(134, 174)"><polygon points="0,0 -11,16 11,16" fill="#2d7a6d"/><polygon points="0,9 -15,27 15,27" fill="#2d7a6d"/><circle cx="0" cy="-2" r="2.5" fill="#ffd166"/><circle cx="-4" cy="14" r="1.5" fill="#d94e67"/><circle cx="5" cy="20" r="1.5" fill="#ffd166"/></g>
+                    <g transform="translate(162, 146)"><polygon points="0,16 18,8 36,16 18,24" fill="#d94e67"/><polygon points="0,16 18,24 18,46 0,38" fill="#f5a3b7"/><polygon points="18,24 36,16 36,38 18,46" fill="#8ec5e8"/></g>
+                    <g transform="translate(184, 168)"><polygon points="0,14 16,7 32,14 16,21" fill="#ffffff"/><polygon points="0,14 16,21 16,38 0,31" fill="#fdf3d7"/><polygon points="16,21 32,14 32,31 16,38" fill="#8ec5e8"/></g>
+                    <g transform="translate(102, 198)"><polygon points="0,14 16,7 32,14 16,21" fill="#ffffff"/><polygon points="0,14 16,21 16,38 0,31" fill="#f5a3b7"/><polygon points="16,21 32,14 32,31 16,38" fill="#8ec5e8"/></g>
+                </svg>
+                <canvas id="snowCanvas"></canvas>
+            </div>
+            <div class="globe-pedestal">
+                <svg width="196" height="54" viewBox="0 0 196 54" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24,6 Q98,18 172,6 L186,42 Q98,54 10,42 Z" fill="#ffffff" stroke="#8da4ef" stroke-width="1.5"/>
+                    <path d="M10,40 Q98,52 186,40 L188,46 Q98,56 8,46 Z" fill="#edf3f8"/>
+                    <text x="98" y="32" text-anchor="middle" font-family="'Montserrat', sans-serif" font-size="11" font-weight="700" fill="#1e2f5c" letter-spacing="1.4">WINTER VILLAGE</text>
+                </svg>
+            </div>
+        </div>
+        <div class="loader-ui-panel">
+            <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+            <div class="loading-text" id="loadingText">Загрузка подарков... 0%</div>
+        </div>
+    </div>
+
+    <div id="main-screen" class="hidden">
+        <section class="hero-village-section">
+            <div class="hero-sky-backdrop" aria-hidden="true">
+                <svg viewBox="0 0 1200 320" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M845,96 A13,13 0 1,0 860,111 A10.5,10.5 0 1,1 845,96 Z" fill="#ffffff" opacity="0.92"/>
+                    <circle class="sky-star" cx="165" cy="48" r="1.8" fill="#ffffff" style="animation-delay: 0.2s;"/>
+                    <circle class="sky-star" cx="310" cy="84" r="2.2" fill="#ffffff" style="animation-delay: 1.1s;"/>
+                    <circle class="sky-star" cx="485" cy="36" r="1.6" fill="#ffffff" style="animation-delay: 2.3s;"/>
+                    <circle class="sky-star" cx="640" cy="72" r="2.1" fill="#ffffff" style="animation-delay: 0.7s;"/>
+                    <circle class="sky-star" cx="765" cy="42" r="1.7" fill="#ffffff" style="animation-delay: 1.8s;"/>
+                    <circle class="sky-star" cx="965" cy="64" r="2.0" fill="#ffffff" style="animation-delay: 2.9s;"/>
+                    <circle class="sky-star" cx="1095" cy="96" r="1.6" fill="#ffffff" style="animation-delay: 1.4s;"/>
+                    <g fill="#ffffff">
+                        <circle class="sky-snow-flake" cx="120" cy="10" r="2.2" style="animation-delay: 0s;"/>
+                        <circle class="sky-snow-flake" cx="260" cy="10" r="1.8" style="animation-delay: 2.1s;"/>
+                        <circle class="sky-snow-flake" cx="410" cy="10" r="2.5" style="animation-delay: 4.3s;"/>
+                        <circle class="sky-snow-flake" cx="575" cy="10" r="1.9" style="animation-delay: 1.2s;"/>
+                        <circle class="sky-snow-flake" cx="730" cy="10" r="2.4" style="animation-delay: 5.5s;"/>
+                        <circle class="sky-snow-flake" cx="890" cy="10" r="1.7" style="animation-delay: 3.4s;"/>
+                        <circle class="sky-snow-flake" cx="1040" cy="10" r="2.3" style="animation-delay: 6.2s;"/>
+                    </g>
+                </svg>
+            </div>
+            <header class="village-header">
+                <div class="header-left">
+                    <span class="brand-tag">advent.village • 1–24 декабря</span>
+                    <h1 class="hero-title">Рождественский Адвент</h1>
+                    <p class="hero-subtitle">Оживите заснеженный город! <strong>Открывайте по одному домику каждый день</strong> — серые дома наполнятся цветом, в окнах зажжётся свет, а на улочки выйдут жители.</p>
+                </div>
+                <div class="header-right">
+                    <div class="big-day-counter" id="headerProgressNum">0/24</div>
+                    <div class="counter-caption">оживлено</div>
+                    <div class="header-actions">
+                        <button class="glass-pill-btn" id="demoModeBtn" type="button" title="Переключить режим проверки всех дат">Демо: Выкл</button>
+                        <button class="glass-pill-btn" id="scrollToAlmanacBtn" type="button">Альманах</button>
+                        <button class="glass-pill-btn" id="resetAllBtn" type="button">Сброс</button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="map-viewport-container" id="mapViewport">
+                <!-- Canvas периодического снегопада над городом (запускается каждые 2 минуты) -->
+                <canvas id="villageSnowOverlay"></canvas>
+
+                <div class="map-transform-layer" id="mapTransformLayer">
+                    <svg id="villageSvg" viewBox="0 0 1440 920" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <filter id="goldenOuterGlow" x="-35%" y="-35%" width="170%" height="170%">
+                                <feGaussianBlur stdDeviation="6.5" result="blur"/>
+                                <feFlood flood-color="#ffd166" flood-opacity="0.98" result="goldColor"/>
+                                <feComposite in="goldColor" in2="blur" operator="in" result="softGlow"/>
+                                <feMerge><feMergeNode in="softGlow"/><feMergeNode in="softGlow"/><feMergeNode in="SourceGraphic"/></feMerge>
+                            </filter>
+                            <filter id="buildingDropShadow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feDropShadow dx="0" dy="6" stdDeviation="4" flood-color="#1e2f5c" flood-opacity="0.16"/>
+                            </filter>
+                            <linearGradient id="valleySnowShade" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#e3eef9"/><stop offset="30%" stop-color="#f5f9fe"/><stop offset="100%" stop-color="#ffffff"/>
+                            </linearGradient>
+                        </defs>
+
+                        <g id="landscapeBackground">
+                            <polygon points="340,245 585,120 770,185 985,108 1245,230 1245,320 340,320" fill="#7e8bc2"/>
+                            <polygon points="150,260 410,145 640,225 875,138 1125,215 1370,132 1440,165 1440,330 150,330" fill="#688eb7"/>
+                            <path d="M-20,280 L-20,108 L215,172 L435,235 L710,182 L985,198 L1315,105 L1460,148 L1460,340 L-20,340 Z" fill="#5b9db6"/>
+                            <g fill="#5b9db6">
+                                <polygon points="182,158 173,178 191,178"/><polygon points="204,164 195,184 213,184"/>
+                                <polygon points="675,184 666,204 684,204"/><polygon points="698,180 689,200 707,200"/>
+                                <polygon points="955,194 946,214 964,214"/><polygon points="1285,112 1276,132 1294,132"/>
+                                <polygon points="1308,108 1299,128 1317,128"/>
+                            </g>
+                            <path d="M-40,192 Q265,148 545,245 Q815,318 1130,255 Q1315,215 1480,175 L1480,940 L-40,940 Z" fill="url(#valleySnowShade)"/>
+                            <path d="M-40,224 Q245,182 515,268 Q795,342 1110,275 Q1305,230 1480,192 L1480,940 L-40,940 Z" fill="#ffffff"/>
+                            <path d="M48,238 Q220,210 390,264" fill="none" stroke="#dce8f5" stroke-width="3.5" stroke-linecap="round"/>
+                            <path d="M1020,282 Q1210,250 1395,212" fill="none" stroke="#dce8f5" stroke-width="3.5" stroke-linecap="round"/>
+                        </g>
+
+                        <g id="villageRoads" fill="none" stroke="#edf3f8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M100,480 L480,305 L860,480 L1330,265" stroke-width="32"/>
+                            <path d="M165,685 L660,455 L1165,685 L1395,575" stroke-width="32"/>
+                            <path d="M300,845 L740,645 L1120,820" stroke-width="28"/>
+                            <path d="M295,390 L730,590 L945,870" stroke-width="28"/>
+                            <path d="M590,355 L995,545 L710,695 L425,855" stroke-width="28"/>
+                            <path d="M920,330 L1250,480 L1005,610" stroke-width="24"/>
+                            <polygon points="730,490 855,548 730,606 605,548" fill="#edf3f8" stroke="#edf3f8" stroke-width="14"/>
+                        </g>
+
+                        <g id="villageScenery">
+                            <!-- Аккуратный заснеженный сквер в верхней части -->
+                            <polygon points="555,406 608,381 660,406 608,431" fill="#84c7b8"/>
+                            <polygon points="575,406 608,390 641,406 608,422" fill="#ffffff"/>
+
+                            <!-- Главная рождественская ёлка на центральной площади (x: 730, y: 545) -->
+                            <g id="mainSquareTree" transform="translate(730, 545)">
+                                <ellipse cx="0" cy="4" rx="22" ry="9" fill="#dce7f2"/>
+                                <rect x="-4" y="-20" width="8" height="23" rx="1.5" fill="#5c4033"/>
+                                <polygon points="0,-54 -22,-18 22,-18" fill="#2d7a6d"/>
+                                <polygon points="0,-68 -18,-34 18,-34" fill="#358f80"/>
+                                <polygon points="0,-82 -13,-50 13,-50" fill="#43a696"/>
+                                <!-- Снежные лапы -->
+                                <path d="M-12,-51 Q0,-46 12,-51" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M-17,-35 Q0,-29 17,-35" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+                                <!-- Гирлянда на главной ёлке -->
+                                <path d="M-11,-52 Q0,-45 11,-52 M-16,-36 Q0,-27 16,-36 M-20,-20 Q0,-10 20,-20" fill="none" stroke="#ffd166" stroke-width="1.3" opacity="0.85"/>
+                                <circle class="garland-bulb" cx="-7" cy="-49" r="2.1" fill="#ffd166" style="animation-delay: 0.1s;"/>
+                                <circle class="garland-bulb" cx="6" cy="-48" r="2.1" fill="#ff6b8b" style="animation-delay: 0.6s;"/>
+                                <circle class="garland-bulb" cx="-11" cy="-33" r="2.2" fill="#70d6ff" style="animation-delay: 1.1s;"/>
+                                <circle class="garland-bulb" cx="1" cy="-31" r="2.2" fill="#ffd166" style="animation-delay: 1.5s;"/>
+                                <circle class="garland-bulb" cx="12" cy="-33" r="2.2" fill="#ff6b8b" style="animation-delay: 0.4s;"/>
+                                <circle class="garland-bulb" cx="-14" cy="-17" r="2.3" fill="#ff6b8b" style="animation-delay: 0.9s;"/>
+                                <circle class="garland-bulb" cx="-3" cy="-14" r="2.3" fill="#70d6ff" style="animation-delay: 1.7s;"/>
+                                <circle class="garland-bulb" cx="9" cy="-15" r="2.3" fill="#ffd166" style="animation-delay: 0.3s;"/>
+                                <!-- Вифлеемская звезда на макушке -->
+                                <polygon points="0,-92 2.5,-86 9,-86 3.8,-82 5.8,-76 0,-79.5 -5.8,-76 -3.8,-82 -9,-86 -2.5,-86" fill="#ffd166" filter="url(#goldenOuterGlow)"/>
+                            </g>
+
+                            <!-- Пушистые ёлочки по всей деревне на свободных участках -->
+                            <g id="villagePineTrees">
+                                <g transform="translate(260, 295)"><polygon points="0,-32 -12,-8 12,-8" fill="#84c7b8"/><polygon points="0,-42 -9,-20 9,-20" fill="#2d7a6d"/></g>
+                                <g transform="translate(555, 290)"><polygon points="0,-34 -13,-8 13,-8" fill="#2d7a6d"/><polygon points="0,-45 -9,-21 9,-21" fill="#84c7b8"/></g>
+                                <g transform="translate(725, 295)"><polygon points="0,-30 -11,-8 11,-8" fill="#84c7b8"/><polygon points="0,-40 -8,-19 8,-19" fill="#2d7a6d"/></g>
+                                <g transform="translate(1155, 265)"><polygon points="0,-34 -13,-8 13,-8" fill="#2d7a6d"/><polygon points="0,-44 -9,-21 9,-21" fill="#84c7b8"/></g>
+                                <g transform="translate(1335, 295)"><polygon points="0,-30 -11,-8 11,-8" fill="#84c7b8"/><polygon points="0,-40 -8,-19 8,-19" fill="#2d7a6d"/></g>
+                                <g transform="translate(465, 480)"><polygon points="0,-32 -12,-8 12,-8" fill="#84c7b8"/><polygon points="0,-42 -9,-20 9,-20" fill="#2d7a6d"/></g>
+                                <g transform="translate(885, 465)"><polygon points="0,-30 -11,-8 11,-8" fill="#2d7a6d"/><polygon points="0,-40 -8,-19 8,-19" fill="#84c7b8"/></g>
+                                <g transform="translate(1310, 495)"><polygon points="0,-34 -13,-8 13,-8" fill="#84c7b8"/><polygon points="0,-44 -9,-21 9,-21" fill="#2d7a6d"/></g>
+                                <g transform="translate(215, 620)"><polygon points="0,-32 -12,-8 12,-8" fill="#2d7a6d"/><polygon points="0,-42 -9,-20 9,-20" fill="#84c7b8"/></g>
+                                <g transform="translate(650, 725)"><polygon points="0,-30 -11,-8 11,-8" fill="#84c7b8"/><polygon points="0,-40 -8,-19 8,-19" fill="#2d7a6d"/></g>
+                                <g transform="translate(870, 825)"><polygon points="0,-34 -13,-8 13,-8" fill="#2d7a6d"/><polygon points="0,-44 -9,-21 9,-21" fill="#84c7b8"/></g>
+                                <g transform="translate(1165, 755)"><polygon points="0,-32 -12,-8 12,-8" fill="#84c7b8"/><polygon points="0,-42 -9,-20 9,-20" fill="#2d7a6d"/></g>
+                            </g>
+
+                            <!-- Уличные праздничные гирлянды на фонарных столбах (зажигаются ярче при оживлении деревни) -->
+                            <g id="villageGarlands" class="village-garlands-group">
+                                <!-- Столбы и растяжки гирлянд по всей деревне -->
+                                <line x1="605" y1="548" x2="605" y2="508" stroke="#1e2f5c" stroke-width="2.5" stroke-linecap="round"/>
+                                <line x1="855" y1="548" x2="855" y2="508" stroke="#1e2f5c" stroke-width="2.5" stroke-linecap="round"/>
+                                <line x1="730" y1="606" x2="730" y2="568" stroke="#1e2f5c" stroke-width="2.5" stroke-linecap="round"/>
+                                <line x1="480" y1="305" x2="480" y2="268" stroke="#1e2f5c" stroke-width="2.2" stroke-linecap="round"/>
+                                <line x1="860" y1="480" x2="860" y2="442" stroke="#1e2f5c" stroke-width="2.2" stroke-linecap="round"/>
+                                <line x1="995" y1="545" x2="995" y2="508" stroke="#1e2f5c" stroke-width="2.2" stroke-linecap="round"/>
+                                <line x1="330" y1="390" x2="330" y2="352" stroke="#1e2f5c" stroke-width="2.2" stroke-linecap="round"/>
+                                <line x1="590" y1="355" x2="590" y2="318" stroke="#1e2f5c" stroke-width="2.2" stroke-linecap="round"/>
+                                <line x1="1125" y1="370" x2="1125" y2="332" stroke="#1e2f5c" stroke-width="2.2" stroke-linecap="round"/>
+                                <line x1="420" y1="660" x2="420" y2="622" stroke="#1e2f5c" stroke-width="2.2" stroke-linecap="round"/>
+                                <line x1="660" y1="695" x2="660" y2="656" stroke="#1e2f5c" stroke-width="2.2" stroke-linecap="round"/>
+                                <line x1="980" y1="680" x2="980" y2="642" stroke="#1e2f5c" stroke-width="2.2" stroke-linecap="round"/>
+                                <line x1="185" y1="620" x2="185" y2="582" stroke="#1e2f5c" stroke-width="2.2" stroke-linecap="round"/>
+
+                                <!-- Провисающие нити гирлянд -->
+                                <path d="M605,510 Q668,534 730,472" fill="none" stroke="#1e2f5c" stroke-width="1.2" opacity="0.6"/>
+                                <path d="M855,510 Q792,534 730,472" fill="none" stroke="#1e2f5c" stroke-width="1.2" opacity="0.6"/>
+                                <path d="M605,510 Q668,556 730,570" fill="none" stroke="#1e2f5c" stroke-width="1.2" opacity="0.6"/>
+                                <path d="M855,510 Q792,556 730,570" fill="none" stroke="#1e2f5c" stroke-width="1.2" opacity="0.6"/>
+                                <path d="M860,444 Q928,486 995,510" fill="none" stroke="#1e2f5c" stroke-width="1.2" opacity="0.6"/>
+                                <path d="M330,354 Q405,326 480,270" fill="none" stroke="#1e2f5c" stroke-width="1.2" opacity="0.6"/>
+                                <path d="M480,270 Q535,304 590,320" fill="none" stroke="#1e2f5c" stroke-width="1.2" opacity="0.6"/>
+                                <path d="M860,444 Q992,402 1125,334" fill="none" stroke="#1e2f5c" stroke-width="1.2" opacity="0.6"/>
+                                <path d="M420,624 Q540,656 660,658" fill="none" stroke="#1e2f5c" stroke-width="1.2" opacity="0.6"/>
+                                <path d="M730,570 Q855,622 980,644" fill="none" stroke="#1e2f5c" stroke-width="1.2" opacity="0.6"/>
+                                <path d="M185,584 Q302,616 420,624" fill="none" stroke="#1e2f5c" stroke-width="1.2" opacity="0.6"/>
+
+                                <!-- Светящиеся разноцветные лампочки гирлянд -->
+                                <g>
+                                    <circle class="garland-bulb" cx="635" cy="513" r="2.6" fill="#ffd166" style="animation-delay: 0.1s;"/>
+                                    <circle class="garland-bulb" cx="668" cy="511" r="2.6" fill="#ff6b8b" style="animation-delay: 0.5s;"/>
+                                    <circle class="garland-bulb" cx="700" cy="496" r="2.6" fill="#70d6ff" style="animation-delay: 0.9s;"/>
+
+                                    <circle class="garland-bulb" cx="825" cy="513" r="2.6" fill="#70d6ff" style="animation-delay: 0.3s;"/>
+                                    <circle class="garland-bulb" cx="792" cy="511" r="2.6" fill="#ffd166" style="animation-delay: 0.7s;"/>
+                                    <circle class="garland-bulb" cx="760" cy="496" r="2.6" fill="#ff6b8b" style="animation-delay: 1.1s;"/>
+
+                                    <circle class="garland-bulb" cx="636" cy="534" r="2.5" fill="#ff6b8b" style="animation-delay: 0.4s;"/>
+                                    <circle class="garland-bulb" cx="668" cy="548" r="2.5" fill="#ffd166" style="animation-delay: 0.8s;"/>
+                                    <circle class="garland-bulb" cx="700" cy="560" r="2.5" fill="#70d6ff" style="animation-delay: 1.2s;"/>
+
+                                    <circle class="garland-bulb" cx="824" cy="534" r="2.5" fill="#ffd166" style="animation-delay: 0.2s;"/>
+                                    <circle class="garland-bulb" cx="792" cy="548" r="2.5" fill="#ff6b8b" style="animation-delay: 0.6s;"/>
+                                    <circle class="garland-bulb" cx="760" cy="560" r="2.5" fill="#ffd166" style="animation-delay: 1.0s;"/>
+
+                                    <circle class="garland-bulb" cx="894" cy="466" r="2.5" fill="#ffd166" style="animation-delay: 0.3s;"/>
+                                    <circle class="garland-bulb" cx="928" cy="483" r="2.5" fill="#ff6b8b" style="animation-delay: 0.9s;"/>
+                                    <circle class="garland-bulb" cx="962" cy="497" r="2.5" fill="#70d6ff" style="animation-delay: 1.4s;"/>
+
+                                    <!-- Лампочки на северной улице -->
+                                    <circle class="garland-bulb" cx="368" cy="340" r="2.5" fill="#ff6b8b" style="animation-delay: 0.2s;"/>
+                                    <circle class="garland-bulb" cx="405" cy="322" r="2.5" fill="#ffd166" style="animation-delay: 0.7s;"/>
+                                    <circle class="garland-bulb" cx="442" cy="300" r="2.5" fill="#70d6ff" style="animation-delay: 1.1s;"/>
+                                    <circle class="garland-bulb" cx="515" cy="292" r="2.5" fill="#ffd166" style="animation-delay: 0.4s;"/>
+                                    <circle class="garland-bulb" cx="552" cy="309" r="2.5" fill="#ff6b8b" style="animation-delay: 0.9s;"/>
+
+                                    <!-- Лампочки на восточном бульваре -->
+                                    <circle class="garland-bulb" cx="925" cy="422" r="2.5" fill="#70d6ff" style="animation-delay: 0.3s;"/>
+                                    <circle class="garland-bulb" cx="992" cy="396" r="2.5" fill="#ffd166" style="animation-delay: 0.8s;"/>
+                                    <circle class="garland-bulb" cx="1060" cy="368" r="2.5" fill="#ff6b8b" style="animation-delay: 1.3s;"/>
+
+                                    <!-- Лампочки на южном и ярмарочном променадах -->
+                                    <circle class="garland-bulb" cx="245" cy="602" r="2.5" fill="#ffd166" style="animation-delay: 0.2s;"/>
+                                    <circle class="garland-bulb" cx="302" cy="613" r="2.5" fill="#ff6b8b" style="animation-delay: 0.6s;"/>
+                                    <circle class="garland-bulb" cx="360" cy="620" r="2.5" fill="#70d6ff" style="animation-delay: 1.0s;"/>
+
+                                    <circle class="garland-bulb" cx="480" cy="642" r="2.5" fill="#ff6b8b" style="animation-delay: 0.3s;"/>
+                                    <circle class="garland-bulb" cx="540" cy="651" r="2.5" fill="#ffd166" style="animation-delay: 0.8s;"/>
+                                    <circle class="garland-bulb" cx="600" cy="656" r="2.5" fill="#70d6ff" style="animation-delay: 1.2s;"/>
+
+                                    <circle class="garland-bulb" cx="792" cy="598" r="2.5" fill="#ffd166" style="animation-delay: 0.4s;"/>
+                                    <circle class="garland-bulb" cx="855" cy="619" r="2.5" fill="#70d6ff" style="animation-delay: 0.9s;"/>
+                                    <circle class="garland-bulb" cx="918" cy="634" r="2.5" fill="#ff6b8b" style="animation-delay: 1.4s;"/>
+                                </g>
+                            </g>
+
+                            <g transform="translate(115, 224)" fill="#2d7a6d">
+                                <rect x="0" y="7" width="12" height="6" rx="2.5"/><rect x="10" y="1" width="3.5" height="8"/>
+                                <line x1="2.5" y1="13" x2="2.5" y2="19" stroke="#2d7a6d" stroke-width="1.8"/><line x1="9.5" y1="13" x2="9.5" y2="19" stroke="#2d7a6d" stroke-width="1.8"/>
+                                <path d="M11,1 L8,-4 M12,1 L15,-4" stroke="#2d7a6d" stroke-width="1.4"/>
+                            </g>
+                            <g transform="translate(172, 246)" fill="#2d7a6d">
+                                <rect x="0" y="7" width="12" height="6" rx="2.5"/><rect x="10" y="1" width="3.5" height="8"/>
+                                <line x1="2.5" y1="13" x2="2.5" y2="19" stroke="#2d7a6d" stroke-width="1.8"/><line x1="9.5" y1="13" x2="9.5" y2="19" stroke="#2d7a6d" stroke-width="1.8"/>
+                            </g>
+                            <g transform="translate(1210, 212)">
+                                <line x1="-8" y1="14" x2="12" y2="20" stroke="#688eb7" stroke-width="1.8" stroke-linecap="round"/>
+                                <circle cx="4" cy="3.5" r="2.6" fill="#d94e67"/><rect x="1.5" y="6.5" width="4.5" height="7" rx="1.2" fill="#1e2f5c"/>
+                                <line x1="0" y1="8.5" x2="-6" y2="13" stroke="#1e2f5c" stroke-width="1.3"/>
+                            </g>
+                            <g transform="translate(1265, 238)">
+                                <line x1="-8" y1="14" x2="12" y2="20" stroke="#688eb7" stroke-width="1.8" stroke-linecap="round"/>
+                                <circle cx="4" cy="3.5" r="2.6" fill="#4f86f7"/><rect x="1.5" y="6.5" width="4.5" height="7" rx="1.2" fill="#d94e67"/>
+                            </g>
+                            <path d="M154,242 V229 A3.5,3.5 0 0,1 161,229" fill="none" stroke="#d94e67" stroke-width="3" stroke-linecap="round"/>
+                            <path d="M1045,626 V613 A3.5,3.5 0 0,1 1052,613" fill="none" stroke="#d94e67" stroke-width="3" stroke-linecap="round"/>
+
+                            <!-- Шатры ярмарки слева от башни 9 -->
+                            <g transform="translate(115, 625)">
+                                <polygon points="0,18 28,6 56,18 28,30" fill="#fdf3d7" stroke="#e2cfa0" stroke-width="1"/>
+                                <polygon points="0,18 28,2 56,18 28,30" fill="#ffffff"/>
+                                <line x1="4" y1="20" x2="4" y2="38" stroke="#c8b48a" stroke-width="1.5"/>
+                                <line x1="28" y1="30" x2="28" y2="48" stroke="#c8b48a" stroke-width="1.5"/>
+                                <line x1="52" y1="20" x2="52" y2="38" stroke="#c8b48a" stroke-width="1.5"/>
+                                <circle cx="28" cy="1" r="2.5" fill="#ffd166"/>
+                                <g transform="translate(54, 24)">
+                                    <polygon points="0,18 28,2 56,18 28,30" fill="#ffffff" stroke="#e2cfa0" stroke-width="1"/>
+                                    <line x1="4" y1="20" x2="4" y2="38" stroke="#c8b48a" stroke-width="1.5"/>
+                                    <line x1="28" y1="30" x2="28" y2="48" stroke="#c8b48a" stroke-width="1.5"/>
+                                    <line x1="52" y1="20" x2="52" y2="38" stroke="#c8b48a" stroke-width="1.5"/>
+                                </g>
+                            </g>
+
+                            <!-- Жители на улицах и у главной ёлки: постепенно оживают с ростом числа открытых дней -->
+                            <g id="streetTownsfolkLayer">
+                                <!-- Появляются с 1-го открытого дня -->
+                                <g class="street-townsperson" data-threshold="1">
+                                    <circle cx="682" cy="547" r="2.8" fill="#1e2f5c"/><rect x="680" y="550" width="4" height="8" rx="1.2" fill="#d94e67"/>
+                                </g>
+                                <!-- Появляются со 2-го открытого дня -->
+                                <g class="street-townsperson" data-threshold="2">
+                                    <circle cx="692" cy="550" r="2.8" fill="#1e2f5c"/><rect x="690" y="553" width="4" height="8" rx="1.2" fill="#4f86f7"/>
+                                </g>
+                                <!-- С 3-го дня: снеговик и гуляющие в сквере -->
+                                <g class="street-townsperson" data-threshold="3" transform="translate(545, 412)">
+                                    <circle cx="0" cy="5" r="4.5" fill="#ffffff" stroke="#dce7f2" stroke-width="1"/><circle cx="0" cy="-1" r="3" fill="#ffffff" stroke="#dce7f2" stroke-width="1"/><line x1="-1.5" y1="1" x2="1.5" y2="1" stroke="#ffd166" stroke-width="1.2"/>
+                                </g>
+                                <!-- С 4-го дня: гости у ярмарочных шатров -->
+                                <g class="street-townsperson" data-threshold="4">
+                                    <circle cx="182" cy="664" r="2.8" fill="#1e2f5c"/><rect x="180" y="667" width="4" height="7" rx="1.2" fill="#d94e67"/>
+                                    <circle cx="192" cy="669" r="2.8" fill="#1e2f5c"/><rect x="190" y="672" width="4" height="7" rx="1.2" fill="#4f86f7"/>
+                                </g>
+                                <!-- С 6-го дня: пара на центральной площади справа от ёлки -->
+                                <g class="street-townsperson" data-threshold="6">
+                                    <circle cx="776" cy="546" r="2.8" fill="#1e2f5c"/><rect x="774" y="549" width="4" height="8" rx="1.2" fill="#2d7a6d"/>
+                                    <circle cx="786" cy="551" r="2.8" fill="#1e2f5c"/><rect x="784" y="554" width="4" height="8" rx="1.2" fill="#f5a3b7"/>
+                                </g>
+                                <!-- С 8-го дня: прогулка вдоль верхней дороги -->
+                                <g class="street-townsperson" data-threshold="8">
+                                    <circle cx="445" cy="316" r="2.8" fill="#1e2f5c"/><rect x="443" y="319" width="4" height="8" rx="1.2" fill="#d94e67"/>
+                                    <circle cx="456" cy="321" r="2.7" fill="#1e2f5c"/><rect x="454" y="324" width="4" height="7" rx="1.2" fill="#ffd166"/>
+                                </g>
+                                <!-- С 10-го дня: компания на восточном перекрёстке -->
+                                <g class="street-townsperson" data-threshold="10">
+                                    <circle cx="965" cy="545" r="2.8" fill="#1e2f5c"/><rect x="963" y="548" width="4" height="8" rx="1.2" fill="#4f86f7"/>
+                                    <circle cx="976" cy="550" r="2.8" fill="#1e2f5c"/><rect x="974" y="553" width="4" height="8" rx="1.2" fill="#d94e67"/>
+                                </g>
+                                <!-- С 13-го дня: семья со снеговиком на южном бульваре -->
+                                <g class="street-townsperson" data-threshold="13">
+                                    <circle cx="715" cy="685" r="2.8" fill="#1e2f5c"/><rect x="713" y="688" width="4" height="8" rx="1.2" fill="#2d7a6d"/>
+                                    <circle cx="726" cy="690" r="2.8" fill="#1e2f5c"/><rect x="724" y="693" width="4" height="8" rx="1.2" fill="#d94e67"/>
+                                    <g transform="translate(739, 692)">
+                                        <circle cx="0" cy="4.5" r="4" fill="#ffffff" stroke="#dce7f2" stroke-width="1"/><circle cx="0" cy="-1" r="2.8" fill="#ffffff" stroke="#dce7f2" stroke-width="1"/>
+                                    </g>
+                                </g>
+                                <!-- С 16-го дня: жители у восточного холма -->
+                                <g class="street-townsperson" data-threshold="16">
+                                    <circle cx="1115" cy="360" r="2.8" fill="#1e2f5c"/><rect x="1113" y="363" width="4" height="8" rx="1.2" fill="#f5a3b7"/>
+                                    <circle cx="1126" cy="365" r="2.8" fill="#1e2f5c"/><rect x="1124" y="368" width="4" height="8" rx="1.2" fill="#4f86f7"/>
+                                </g>
+                                <!-- С 20-го дня: большой праздник на площади -->
+                                <g class="street-townsperson" data-threshold="20">
+                                    <circle cx="652" cy="566" r="2.8" fill="#1e2f5c"/><rect x="650" y="569" width="4" height="8" rx="1.2" fill="#ffd166"/>
+                                    <circle cx="808" cy="566" r="2.8" fill="#1e2f5c"/><rect x="806" y="569" width="4" height="8" rx="1.2" fill="#d94e67"/>
+                                    <circle cx="732" cy="586" r="2.8" fill="#1e2f5c"/><rect x="730" y="589" width="4" height="8" rx="1.2" fill="#4f86f7"/>
+                                </g>
+                            </g>
+                        </g>
+                        <g id="interactiveHousesLayer"></g>
+                    </svg>
+                </div>
+                <div class="map-gesture-hint" id="mapGestureHint">Перетаскивайте карту • Открывайте домики с 1 по 24 декабря</div>
+                <div class="map-zoom-controls">
+                    <button class="zoom-btn" id="zoomInBtn" type="button" aria-label="Приблизить">+</button>
+                    <button class="zoom-btn" id="zoomOutBtn" type="button" aria-label="Отдалить">−</button>
+                    <button class="zoom-btn" id="zoomResetBtn" type="button" aria-label="Центрировать" style="font-size: 13px;">⌂</button>
+                </div>
+            </div>
+        </section>
+
+        <nav class="quick-days-dock" aria-label="Быстрый выбор дня">
+            <div class="dock-header-row">
+                <span class="dock-label">Найти домик на карте (1–24 декабря)</span>
+                <span class="dock-sub" id="dockProgressLabel">Оживлено домиков: 0 из 24</span>
+            </div>
+            <div class="days-ribbon-scroll" id="daysRibbon"></div>
+        </nav>
+
+        <section class="almanac-section" id="almanacSection">
+            <div class="almanac-header">
+                <h2 class="almanac-title">Рождественский альманах</h2>
+                <p class="almanac-desc">Не хочется искать домик на улочках деревни? Все открытые карточки с рождественскими фактами и подарками собираются здесь.</p>
+            </div>
+            <div class="almanac-grid" id="almanacGrid"></div>
+        </section>
+    </div>
+
+    <!-- Уведомление о датах декабря -->
+    <div class="village-toast" id="villageToast"></div>
+
+    <div class="modal-backdrop" id="dayModal">
+        <div class="trivia-modal-card">
+            <div class="modal-art-banner" id="modalArtBanner"></div>
+            <div class="modal-content-box">
+                <div class="modal-date-label" id="modalDateLabel">Dec. 1</div>
+                <h3 class="modal-fact-title" id="modalFactTitle">Откуда пришли новогодние ёлки?</h3>
+                <p class="modal-fact-text" id="modalFactText">Традиция наряжать вечнозелёную ель появилась ещё в XVI веке как символ вечной жизни и обновления.</p>
+                <div class="modal-gift-pill" id="modalGiftPill">🎁 Подарок дня: Тёплый плед и какао</div>
+                <button class="modal-primary-btn" id="modalCloseBtn" type="button">Вернуться в деревню</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+        if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#1a2744'); tg.setBackgroundColor('#1a2744'); }
+
+        function triggerHaptic(style = 'light') {
+            if (tg && tg.HapticFeedback) { try { tg.HapticFeedback.impactOccurred(style); } catch (e) {} }
+        }
+
+        const canvas = document.getElementById('snowCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        function resizeCanvas() {
+            const globe = document.getElementById('globe');
+            if (!globe) return;
+            width = canvas.width = globe.offsetWidth;
+            height = canvas.height = globe.offsetHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const particles = [];
+        const maxParticles = 65;
+
+        class Snowflake {
+            constructor() { this.reset(true); }
+            reset(initial = false) {
+                this.x = Math.random() * width;
+                this.y = initial ? Math.random() * height : -8;
+                this.radius = Math.random() * 2.1 + 0.9;
+                this.speedY = Math.random() * 0.9 + 0.35;
+                this.speedX = Math.random() * 0.5 - 0.25;
+                this.opacity = Math.random() * 0.5 + 0.45;
+            }
+            update() {
+                this.y += this.speedY; this.x += this.speedX;
+                if (this.y > height + 6) this.reset(false);
+                if (this.x > width) this.x = 0;
+                if (this.x < 0) this.x = width;
+            }
+            draw() {
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`; ctx.fill();
+            }
+        }
+        for (let i = 0; i < maxParticles; i++) particles.push(new Snowflake());
+        let snowRunning = true;
+        function animateSnow() {
+            if (!snowRunning) return;
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animateSnow);
+        }
+        animateSnow();
+
+        let progress = 0;
+        const progressBar = document.getElementById('progressBar');
+        const loadingText = document.getElementById('loadingText');
+        const loaderScreen = document.getElementById('loader-screen');
+        const mainScreen = document.getElementById('main-screen');
+
+        const loadInterval = setInterval(() => {
+            progress += Math.random() * 16 + 6;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(loadInterval);
+                loadingText.innerText = "Добро пожаловать в деревню!";
+                setTimeout(() => {
+                    loaderScreen.classList.add('zooming-in');
+                    mainScreen.classList.remove('hidden');
+                    if (tg) { try { tg.setHeaderColor('#4f86f7'); tg.setBackgroundColor('#edf3f8'); } catch (e) {} }
+                    setTimeout(() => { mainScreen.style.opacity = '1'; }, 350);
+                    setTimeout(() => {
+                        snowRunning = false;
+                        loaderScreen.classList.add('hidden');
+                        document.body.style.overflow = 'auto';
+                        centerMapOnVillage(false);
+                    }, 1250);
+                }, 350);
+            }
+            progressBar.style.width = progress + '%';
+            loadingText.innerText = `Загрузка подарков... ${Math.floor(progress)}%`;
+        }, 180);
+
+        const CARD_PATTERNS = [
+            `<svg viewBox="0 0 240 140" preserveAspectRatio="xMidYMid slice"><rect width="240" height="140" fill="#4f86f7"/><g fill="#2d7a6d"><polygon points="20,10 0,55 40,55"/><polygon points="60,10 40,55 80,55"/><polygon points="100,10 80,55 120,55"/><polygon points="140,10 120,55 160,55"/><polygon points="180,10 160,55 200,55"/><polygon points="220,10 200,55 240,55"/></g><g fill="#84c7b8"><polygon points="40,40 20,85 60,85"/><polygon points="80,40 60,85 100,85"/><polygon points="120,40 100,85 140,85"/><polygon points="160,40 140,85 180,85"/><polygon points="200,40 180,85 220,85"/></g><g fill="#f5a3b7"><polygon points="20,70 0,115 40,115"/><polygon points="100,70 80,115 120,115"/><polygon points="180,70 160,115 200,115"/></g><g fill="#ffd166"><polygon points="60,70 40,115 80,115"/><polygon points="140,70 120,115 160,115"/><polygon points="220,70 200,115 240,115"/></g><g fill="#ffffff"><polygon points="40,100 20,145 60,145"/><polygon points="80,100 60,145 100,145"/><polygon points="120,100 100,145 140,145"/><polygon points="160,100 140,145 180,145"/><polygon points="200,100 180,145 220,145"/></g></svg>`,
+            `<svg viewBox="0 0 240 140" preserveAspectRatio="xMidYMid slice"><rect width="240" height="140" fill="#1e2f5c"/><g stroke-width="5" stroke-linecap="round"><line x1="22" y1="24" x2="34" y2="18" stroke="#ffd166"/><line x1="56" y1="36" x2="66" y2="44" stroke="#f5a3b7"/><line x1="98" y1="20" x2="110" y2="26" stroke="#ffd166"/><line x1="142" y1="32" x2="152" y2="22" stroke="#8ec5e8"/><line x1="186" y1="24" x2="198" y2="32" stroke="#ffd166"/><line x1="214" y1="54" x2="224" y2="46" stroke="#f5a3b7"/><line x1="34" y1="68" x2="46" y2="74" stroke="#f5a3b7"/><line x1="82" y1="62" x2="92" y2="54" stroke="#ffd166"/><line x1="126" y1="74" x2="138" y2="68" stroke="#f5a3b7"/><line x1="168" y1="64" x2="178" y2="74" stroke="#ffd166"/><line x1="24" y1="108" x2="36" y2="102" stroke="#8ec5e8"/><line x1="68" y1="112" x2="80" y2="118" stroke="#ffd166"/><line x1="114" y1="104" x2="124" y2="114" stroke="#ffd166"/><line x1="158" y1="112" x2="170" y2="104" stroke="#f5a3b7"/><line x1="202" y1="106" x2="214" y2="114" stroke="#ffd166"/></g></svg>`,
+            `<svg viewBox="0 0 240 140" preserveAspectRatio="xMidYMid slice"><rect width="240" height="140" fill="#edf3f8"/><g stroke="#ffd166" stroke-width="3" stroke-linecap="round"><g transform="translate(55, 45)"><line x1="-24" y1="0" x2="24" y2="0"/><line x1="0" y1="-24" x2="0" y2="24"/><line x1="-17" y1="-17" x2="17" y2="17"/><line x1="17" y1="-17" x2="-17" y2="17"/></g><g transform="translate(165, 38)"><line x1="-20" y1="0" x2="20" y2="0"/><line x1="0" y1="-20" x2="0" y2="20"/><line x1="-14" y1="-14" x2="14" y2="14"/><line x1="14" y1="-14" x2="-14" y2="14"/></g><g transform="translate(115, 98)"><line x1="-26" y1="0" x2="26" y2="0"/><line x1="0" y1="-26" x2="0" y2="26"/><line x1="-18" y1="-18" x2="18" y2="18"/><line x1="18" y1="-18" x2="-18" y2="18"/></g></g><circle cx="95" cy="30" r="3" fill="#d94e67"/><circle cx="205" cy="92" r="3" fill="#4f86f7"/><circle cx="32" cy="108" r="3" fill="#84c7b8"/></svg>`,
+            `<svg viewBox="0 0 240 140" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="cardSkyGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8ec5e8"/><stop offset="100%" stop-color="#edf3f8"/></linearGradient></defs><rect width="240" height="140" fill="url(#cardSkyGrad)"/><polygon points="0,115 65,62 120,105 175,60 240,115 240,140 0,140" fill="#c3d9ee"/><path d="M20,140 Q120,84 220,140 Z" fill="#ffffff"/><g transform="translate(102, 86)"><polygon points="0,14 18,0 36,14 36,34 0,34" fill="#8ec5e8"/><polygon points="-3,15 18,-2 39,15 36,18 18,3 0,18" fill="#ffffff"/><rect x="14" y="20" width="8" height="14" fill="#1e2f5c"/></g><path d="M120,34 C110,34 103,41 103,50 C103,62 120,76 120,76 C120,76 137,62 137,50 C137,41 130,34 120,34 Z" fill="#d94e67"/><circle cx="120" cy="49" r="5" fill="#ffffff"/></svg>`
+        ];
+
+        // Координаты всех 24 домиков разнесены с комфортным интервалом, без наложения друг на друга и на ёлки
+        const VILLAGE_DAYS = [
+            { day: 1, x: 345, y: 280, style: 'townhouse', leftCol: '#f5a3b7', rightCol: '#fdf3d7', roofCol: '#d94e67', numSide: 'left', title: 'Откуда пришли новогодние ёлки?', fact: 'Первые украшенные рождественские ели появились в XVI веке: их наряжали яблоками, орехами и бумажными розами.', gift: '🎄 Ароматная хвойная свеча' },
+            { day: 2, x: 475, y: 342, style: 'townhouse', leftCol: '#8ec5e8', rightCol: '#fdf3d7', roofCol: '#ffffff', numSide: 'left', title: 'Первый адвент-календарь', fact: 'В XIX веке семьи отмечали дни до праздника мелом на двери, а первый печатный календарь с окошками появился в 1908 году.', gift: '🍫 Плитка молочного шоколада' },
+            { day: 3, x: 605, y: 404, style: 'townhouse', leftCol: '#f5a3b7', rightCol: '#fdf3d7', roofCol: '#f5a3b7', numSide: 'left', title: 'Почему вешают носки у камина?', fact: 'По старинной легенде золотые монеты, брошенные в дымоход, случайно попали прямо в сушившиеся у очага чулки.', gift: '🧦 Уютные шерстяные носки' },
+            { day: 4, x: 1035, y: 235, style: 'cottage', leftCol: '#f5a3b7', rightCol: '#fdf3d7', roofCol: '#ffffff', numSide: 'left', title: 'Где живёт Санта-Клаус?', fact: 'Официальная резиденция находится в лапландском Рованиеми прямо на линии Полярного круга, куда приходят миллионы писем.', gift: '✉️ Открытка с северным сиянием' },
+            { day: 5, x: 905, y: 332, style: 'giftHouse', leftCol: '#4a5578', rightCol: '#fdf3d7', roofCol: '#1e2f5c', numSide: 'left', title: 'Дом, перевязанный лентой', fact: 'Традиция упаковывать подарки в яркую бумагу с лентами символизирует радость ожидания чуда.', gift: '🎁 Сюрприз в красной ленте' },
+            { day: 6, x: 775, y: 368, style: 'cottage', leftCol: '#8ec5e8', rightCol: '#fdf3d7', roofCol: '#ffffff', numSide: 'left', title: 'Секрет идеальных снежинок', fact: 'Каждая снежинка имеет шесть лучей, но из-за перепадов температуры и влажности в облаках не бывает двух одинаковых узоров.', gift: '❄️ Хрустальная подвеска' },
+            { day: 7, x: 525, y: 525, style: 'palace', leftCol: '#fdf3d7', rightCol: '#8ec5e8', roofCol: '#1e2f5c', numSide: 'left', title: 'Рождественская ярмарка', fact: 'Старейшие зимние ярмарки Европы зародились ещё в позднем Средневековье, где горожане покупали пряники и горячие напитки.', gift: '🎪 Билет на колесо обозрения' },
+            { day: 8, x: 915, y: 525, style: 'palace', leftCol: '#84c7b8', rightCol: '#fdf3d7', roofCol: '#d94e67', numSide: 'right', title: 'История имбирного человечка', fact: 'Фигурные имбирные пряники стали символом зимних праздников благодаря согревающим специям: корице, гвоздике и имбирю.', gift: '🍪 Набор пряников с глазурью' },
+            { day: 9, x: 255, y: 495, style: 'tower', leftCol: '#1e2f5c', rightCol: '#2b427d', roofCol: '#1e2f5c', numSide: 'left', title: 'Самая высокая ёлка в мире', fact: 'Рекордная рождественская ель высотой более 67 метров была установлена в Сиэтле в 1950 году.', gift: '⭐ Золотая звезда на макушку' },
+            { day: 10, x: 385, y: 560, style: 'townhouse', leftCol: '#3d4c7a', rightCol: '#fdf3d7', roofCol: '#1e2f5c', numSide: 'left', title: 'Олени в упряжке', fact: 'Северные олени — единственные олени, у которых рога есть и у самцов, и у самок, а их копыта меняются зимой для ходьбы по льду.', gift: '🦌 Тёплый вязаный шарф' },
+            { day: 11, x: 695, y: 550, style: 'cottage', leftCol: '#8ec5e8', rightCol: '#f5a3b7', roofCol: '#ffffff', numSide: 'left', title: 'Зачем нужен венок на двери?', fact: 'Круглая форма рождественского венка из вечнозелёной хвои означает бесконечность тепла, света и гостеприимства.', gift: '🌿 Хвойный венок с колокольчиком' },
+            { day: 12, x: 1175, y: 425, style: 'townhouse', leftCol: '#f5a3b7', rightCol: '#fdf3d7', roofCol: '#ffffff', numSide: 'right', title: 'Экватор праздника!', fact: 'Половина пути пройдена! В Скандинавии 13 декабря отмечают День святой Люсии с шествиями при свечах и шафрановыми булочками.', gift: '🕯️ Набор медовых свечей' },
+            { day: 13, x: 1045, y: 490, style: 'townhouse', leftCol: '#f5a3b7', rightCol: '#fdf3d7', roofCol: '#f5a3b7', numSide: 'right', title: 'Леденцовая трость', fact: 'Бело-красные леденцы в форме посоха появились более 350 лет назад и стали главным украшением детских праздников.', gift: '🍬 Мятные леденцы-трости' },
+            { day: 14, x: 805, y: 655, style: 'townhouse', leftCol: '#d94e67', rightCol: '#f5a3b7', roofCol: '#1e2f5c', numSide: 'right', title: 'Музыка зимних колокольчиков', fact: 'Знаменитая мелодия Jingle Bells изначально была написана в 1857 году для гонок на санях в День благодарения.', gift: '🔔 Серебряный бубенчик' },
+            { day: 15, x: 355, y: 690, style: 'townhouse', leftCol: '#8ec5e8', rightCol: '#fdf3d7', roofCol: '#1e2f5c', numSide: 'left', title: 'Зимний солнцеворот', fact: 'После самых длинных декабрьских ночей световой день начинает постепенно прибавляться — природа поворачивает к весне.', gift: '☀️ Горячий апельсиновый пунш' },
+            { day: 16, x: 485, y: 712, style: 'cottage', leftCol: '#fdf3d7', rightCol: '#8ec5e8', roofCol: '#ffffff', numSide: 'left', title: 'Стеклянные ёлочные шары', fact: 'Первые стеклянные шары выдули мастера в Тюрингии в XIX веке, когда неурожай яблок заставил искать замену фруктам на ёлке.', gift: '🔮 Расписной стеклянный шар' },
+            { day: 17, x: 615, y: 760, style: 'cottage', leftCol: '#84c7b8', rightCol: '#fdf3d7', roofCol: '#ffffff', numSide: 'left', title: 'Огни гирлянд', fact: 'Первую электрическую гирлянду для рождественской ёлки создал в 1882 году Эдвард Джонсон, коллега Томаса Эдисона.', gift: '✨ Гирлянда тёплых огоньков' },
+            { day: 18, x: 1185, y: 610, style: 'townhouse', leftCol: '#1e2f5c', rightCol: '#2b427d', roofCol: '#1e2f5c', numSide: 'right', title: 'Почтовая служба Санты', fact: 'В разных странах существуют специальные почтовые индексы (например, H0H 0H0 в Канаде), куда дети отправляют свои письма.', gift: '📮 Набор сургучных печатей' },
+            { day: 19, x: 1055, y: 675, style: 'townhouse', leftCol: '#8ec5e8', rightCol: '#fdf3d7', roofCol: '#1e2f5c', numSide: 'right', title: 'Горячий шоколад и какао', fact: 'Зимний напиток с маршмеллоу стал неотъемлемым спутником катания на коньках и вечерних чтений у камина.', gift: '☕ Кружка какао с зефирками' },
+            { day: 20, x: 925, y: 740, style: 'townhouse', leftCol: '#f5a3b7', rightCol: '#fdf3d7', roofCol: '#ffffff', numSide: 'right', title: 'Праздничные открытки', fact: 'Первая коммерческая рождественская открытка была напечатана в Лондоне в 1843 году тиражом всего 1000 экземпляров.', gift: '💌 Винтажная открытка' },
+            { day: 21, x: 155, y: 365, style: 'dome', leftCol: '#8ec5e8', rightCol: '#2b427d', roofCol: '#1e2f5c', numSide: 'left', title: 'Сказочный балет «Щелкунчик»', fact: 'Премьера балета Петра Ильича Чайковского состоялась в декабре 1892 года и с тех пор стала главным символом зимней сказки.', gift: '🩰 Музыкальная шкатулка' },
+            { day: 22, x: 1265, y: 330, style: 'dome', leftCol: '#f5a3b7', rightCol: '#fdf3d7', roofCol: '#d94e67', numSide: 'right', title: 'Уютные свитера с узорами', fact: 'Традиционные норвежские и исландские свитера с геометрическими снежинками вяжутся из овечьей шерсти и согревают в любой мороз.', gift: '🧶 Тёплый свитер с оленями' },
+            { day: 23, x: 825, y: 245, style: 'townhouse', leftCol: '#4a5578', rightCol: '#fdf3d7', roofCol: '#1e2f5c', numSide: 'left', title: 'Канун большого праздника', fact: 'Во многих домах в этот вечер накрывают стол, зажигают бенгальские огни и кладут последние подарки под ёлку.', gift: '🎇 Бенгальские огни' },
+            { day: 24, x: 615, y: 235, style: 'townhouse', leftCol: '#1e2f5c', rightCol: '#2b427d', roofCol: '#1e2f5c', numSide: 'right', title: 'Главное рождественское чудо!', fact: 'Все 24 окошка деревни зажглись! Пусть наступающий год принесёт вам вдохновение, тепло близких и исполнение самых заветных желаний.', gift: '👑 Большой новогодний подарок' }
+        ];
+
+        const STORAGE_KEY = 'advent_village_opened_days_v2';
+        let openedDays = new Set();
+        let demoUnlockAll = false;
+
+        // Календарная логика: с 1 по 24 декабря каждый день становится доступен соответствующий домик
+        function getMaxUnlockedDecemberDay() {
+            if (demoUnlockAll) return 24;
+            const now = new Date();
+            const month = now.getMonth(); // 11 = декабрь
+            const day = now.getDate();
+            if (month === 11) {
+                return Math.min(24, Math.max(1, day));
+            }
+            // Если сейчас не декабрь (например, ноябрь), разрешаем открыть 1 декабря как приветственный день
+            return 1;
+        }
+
+        function isDayUnlockedByCalendar(day) {
+            return day <= getMaxUnlockedDecemberDay();
+        }
+
+        let toastTimer = null;
+        function showVillageToast(message) {
+            const toast = document.getElementById('villageToast');
+            if (!toast) return;
+            toast.innerText = message;
+            toast.classList.add('visible');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('visible');
+            }, 2800);
+        }
+
+        function loadProgress() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) openedDays = new Set(parsed.map(Number).filter(n => n >= 1 && n <= 24));
+                }
+            } catch (e) { openedDays = new Set(); }
+        }
+
+        function saveProgress() {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...openedDays])); } catch (e) {}
+            updateHeaderAndDock();
+        }
+        loadProgress();
+
+        const housesLayer = document.getElementById('interactiveHousesLayer');
+
+        function renderIsoWindow(x, y, skew) {
+            return `<g transform="translate(${x}, ${y}) skewY(${skew})"><rect x="-1" y="-1" width="11" height="14" rx="1" fill="#ffffff"/><rect class="win-pane" x="0.5" y="0.5" width="8" height="11" rx="0.5"/><line x1="4.5" y1="0.5" x2="4.5" y2="11.5" stroke="#ffffff" stroke-width="1"/><line x1="0.5" y1="6" x2="8.5" y2="6" stroke="#ffffff" stroke-width="1"/></g>`;
+        }
+
+        // Вычисляем точные координаты для цифры дня строго по центру пустой стены в изометрии
+        // Левая стена: центр по X = 19, центр по Y = 66.5; с учётом skewY(26.5°) y_base = 66.5 - 19 * tan(26.5°) = 57.0
+        // Правая стена: центр по X = 56, центр по Y = 66.5; с учётом skewY(-26.5°) y_base = 66.5 + 56 * tan(26.5°) = 94.4
+        function getNumTransform(item) {
+            if (item.style === 'tower') return { x: 13, y: 67.5, skew: 29 };
+            if (item.style === 'cottage') return { x: 19, y: 58.5, skew: 26.5 };
+            if (item.style === 'dome') {
+                if (item.numSide === 'right') return { x: 56, y: 95.5, skew: -26.5 };
+                return { x: 19, y: 58.5, skew: 26.5 };
+            }
+            if (item.numSide === 'right') {
+                return { x: 56, y: 94.4, skew: -26.5 };
+            }
+            return { x: 19, y: 57.0, skew: 26.5 };
+        }
+
+        function createIsoBuildingSvg(item) {
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            const isOpened = openedDays.has(item.day);
+            g.setAttribute('class', 'dayBuilding ' + (isOpened ? 'opened' : 'abandoned'));
+            g.setAttribute('transform', `translate(${item.x}, ${item.y})`);
+            g.setAttribute('data-day', item.day);
+
+            const isRightNum = item.numSide === 'right';
+            const numT = getNumTransform(item);
+            let bodyHtml = '';
+
+            if (item.style === 'cottage') {
+                bodyHtml = `<g class="outerGlow" filter="url(#goldenOuterGlow)"><polygon points="-5,34 32,10 74,30 74,64 38,82 -5,64" fill="#ffd166"/></g><polygon points="0,36 38,55 38,79 0,60" fill="${item.leftCol}"/><polygon points="38,55 72,36 72,60 38,79" fill="${item.rightCol}"/><polygon points="-4,36 32,10 70,29 38,55" fill="${item.roofCol}"/><polygon points="32,10 76,31 72,36 38,55" fill="#dce7f2"/><rect x="46" y="7" width="8" height="14" fill="${item.leftCol}"/><rect x="44.5" y="5.5" width="11" height="3.5" fill="#ffffff"/>${renderIsoWindow(43, 55, -26.5)}${renderIsoWindow(58, 47.5, -26.5)}<g transform="translate(52, 60) skewY(-26.5)"><path d="M0,12 V4 A4,4 0 0,1 8,4 V12 Z" fill="#1e2f5c" stroke="#ffffff" stroke-width="1.2"/></g><text class="day-num-text" x="${numT.x}" y="${numT.y}" text-anchor="middle" dominant-baseline="middle" font-size="22" transform="skewY(${numT.skew})">${item.day}</text>`;
+            } else if (item.style === 'tower') {
+                bodyHtml = `<g class="outerGlow" filter="url(#goldenOuterGlow)"><polygon points="-5,22 26,0 58,22 58,92 26,110 -5,92" fill="#ffd166"/></g><polygon points="0,30 26,45 26,104 0,89" fill="${item.leftCol}"/><polygon points="26,45 52,30 52,89 26,104" fill="${item.rightCol}"/><polygon points="-3,30 26,3 55,30 26,45" fill="${item.roofCol}"/><polygon points="26,11 28,16 33,16 29,19 30.5,24 26,21 21.5,24 23,19 19,16 24,16" fill="#ffd166"/>${renderIsoWindow(34, 48, -29)}${renderIsoWindow(34, 68, -29)}<text class="day-num-text" x="${numT.x}" y="${numT.y}" text-anchor="middle" dominant-baseline="middle" font-size="24" transform="skewY(${numT.skew})">${item.day}</text>`;
+            } else if (item.style === 'dome') {
+                const winBaseX = isRightNum ? 8 : 44;
+                const winSkew = isRightNum ? 26.5 : -26.5;
+                const yStart = isRightNum ? 45 : 60;
+                const yStep = isRightNum ? 7 : -7;
+                const doorX = isRightNum ? 15 : 51;
+                const doorY = isRightNum ? 79 : 80;
+                bodyHtml = `<g class="outerGlow" filter="url(#goldenOuterGlow)"><polygon points="-5,28 36,0 78,24 78,86 38,108 -5,86" fill="#ffd166"/></g><polygon points="0,34 38,53 38,102 0,83" fill="${item.leftCol}"/><polygon points="38,53 74,34 74,83 38,102" fill="${item.rightCol}"/><path d="M-2,34 Q4,9 36,1 Q68,9 76,34 L38,53 Z" fill="${item.roofCol}"/><polyline points="0,37 38,56 74,37" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-dasharray="3 3"/><polyline points="0,42 38,61 74,42" fill="none" stroke="#ffffff" stroke-width="1.5"/>${renderIsoWindow(winBaseX, yStart, winSkew)}${renderIsoWindow(winBaseX + 14, yStart + yStep, winSkew)}<g transform="translate(${doorX}, ${doorY}) skewY(${winSkew})"><path d="M0,12 V4 A4,4 0 0,1 8,4 V12 Z" fill="#1e2f5c" stroke="#ffffff" stroke-width="1.2"/></g><text class="day-num-text" x="${numT.x}" y="${numT.y}" text-anchor="middle" dominant-baseline="middle" font-size="24" transform="skewY(${numT.skew})">${item.day}</text>`;
+            } else if (item.style === 'giftHouse') {
+                bodyHtml = `<g class="outerGlow" filter="url(#goldenOuterGlow)"><polygon points="-5,28 36,6 78,28 78,84 38,106 -5,84" fill="#ffd166"/></g><polygon points="0,32 38,51 38,100 0,81" fill="${item.leftCol}"/><polygon points="38,51 74,32 74,81 38,100" fill="${item.rightCol}"/><polygon points="-3,32 36,11 77,32 38,51" fill="${item.roofCol}"/><polygon points="15,21 23,17 58,36 50,40" fill="#d94e67"/><polygon points="0,54 38,73 38,81 0,62" fill="#d94e67"/><polygon points="16,40 23,43.5 23,92.5 16,89" fill="#d94e67"/><ellipse cx="34" cy="74" rx="6" ry="4" fill="#d94e67" stroke="#ffffff" stroke-width="1"/><ellipse cx="42" cy="74" rx="6" ry="4" fill="#d94e67" stroke="#ffffff" stroke-width="1"/>${renderIsoWindow(44, 56, -26.5)}${renderIsoWindow(58, 49, -26.5)}${renderIsoWindow(44, 73, -26.5)}${renderIsoWindow(58, 66, -26.5)}<text class="day-num-text" x="${numT.x}" y="${numT.y}" text-anchor="middle" dominant-baseline="middle" font-size="25" transform="skewY(${numT.skew})">${item.day}</text>`;
+            } else if (item.style === 'palace') {
+                const winBaseX = isRightNum ? 8 : 44;
+                const winSkew = isRightNum ? 26.5 : -26.5;
+                const winTopY = isRightNum ? 43 : 56;
+                const archTopY = isRightNum ? 64 : 76;
+                const step = isRightNum ? 7.5 : -7.5;
+                bodyHtml = `<g class="outerGlow" filter="url(#goldenOuterGlow)"><polygon points="-5,28 36,6 78,28 78,84 38,106 -5,84" fill="#ffd166"/></g><polygon points="0,32 38,51 38,100 0,81" fill="${item.leftCol}"/><polygon points="38,51 74,32 74,81 38,100" fill="${item.rightCol}"/><polygon points="-3,32 36,11 77,32 38,51" fill="${item.roofCol}"/><polyline points="0,33 38,52 74,33" fill="none" stroke="#ffffff" stroke-width="2.5"/><g transform="translate(${winBaseX}, ${archTopY}) skewY(${winSkew})"><path d="M0,18 V6 A5,5 0 0,1 10,6 V18 Z" fill="#1e2f5c"/></g><g transform="translate(${winBaseX + 15}, ${archTopY + step}) skewY(${winSkew})"><path d="M0,18 V6 A5,5 0 0,1 10,6 V18 Z" fill="#1e2f5c"/></g>${renderIsoWindow(winBaseX + 0.5, winTopY, winSkew)}${renderIsoWindow(winBaseX + 15.5, winTopY + step, winSkew)}<text class="day-num-text" x="${numT.x}" y="${numT.y}" text-anchor="middle" dominant-baseline="middle" font-size="23" transform="skewY(${numT.skew})">${item.day}</text>`;
+            } else {
+                const winBaseX = isRightNum ? 8 : 44;
+                const winSkew = isRightNum ? 26.5 : -26.5;
+                const winTopY = isRightNum ? 44 : 56;
+                const yStep = isRightNum ? 7 : -7;
+                bodyHtml = `<g class="outerGlow" filter="url(#goldenOuterGlow)"><polygon points="-5,28 36,6 78,28 78,84 38,106 -5,84" fill="#ffd166"/></g><polygon points="0,32 38,51 38,100 0,81" fill="${item.leftCol}"/><polygon points="38,51 74,32 74,81 38,100" fill="${item.rightCol}"/><polygon points="-3,32 36,11 77,32 38,51" fill="${item.roofCol}"/><rect x="33" y="9" width="7" height="12" fill="${item.leftCol}"/><rect x="31.5" y="7.5" width="10" height="3" fill="#ffffff"/><polyline points="0,33 38,52 74,33" fill="none" stroke="#ffffff" stroke-width="2.6"/>${renderIsoWindow(winBaseX, winTopY, winSkew)}${renderIsoWindow(winBaseX + 14, winTopY + yStep, winSkew)}${renderIsoWindow(winBaseX, winTopY + 16, winSkew)}${renderIsoWindow(winBaseX + 14, winTopY + 16 + yStep, winSkew)}<g transform="translate(${winBaseX + 14}, ${winTopY + 31 + yStep}) skewY(${winSkew})"><rect x="0" y="0" width="11" height="8" fill="#1e2f5c"/><polygon points="-1,0 12,0 13,3 -2,3" fill="#d94e67"/></g><text class="day-num-text" x="${numT.x}" y="${numT.y}" text-anchor="middle" dominant-baseline="middle" font-size="24" transform="skewY(${numT.skew})">${item.day}</text>`;
+            }
+
+            const badgeHtml = `<g class="opened-star-badge" transform="translate(36, -3)"><circle cx="0" cy="0" r="10" fill="#ffd166" stroke="#ffffff" stroke-width="2"/><text x="0" y="4" text-anchor="middle" font-size="12" font-weight="800" fill="#1e2f5c">✓</text></g>`;
+
+            // Жители возле каждого домика: появляются по мере оживления города (от 1 до 3 жителей + снеговик)
+            const coatColors = ['#d94e67', '#4f86f7', '#2d7a6d', '#ffd166', '#f5a3b7'];
+            const c1 = coatColors[item.day % coatColors.length];
+            const c2 = coatColors[(item.day + 2) % coatColors.length];
+            const c3 = coatColors[(item.day + 4) % coatColors.length];
+            const pX = isRightNum ? 54 : 14;
+            const pY = item.style === 'cottage' ? 76 : 96;
+            const hasThirdPerson = item.day % 2 === 0;
+            const hasSnowman = item.day % 3 === 0;
+            const peopleHtml = `
+                <g class="house-townsfolk" transform="translate(${pX}, ${pY})">
+                    <circle cx="0" cy="0" r="2.7" fill="#1e2f5c"/>
+                    <rect x="-2" y="3" width="4" height="7.5" rx="1.2" fill="${c1}"/>
+                    <circle cx="9" cy="3" r="2.7" fill="#1e2f5c"/>
+                    <rect x="7" y="6" width="4" height="7.5" rx="1.2" fill="${c2}"/>
+                    ${hasThirdPerson ? `
+                        <circle cx="18" cy="1" r="2.5" fill="#1e2f5c"/>
+                        <rect x="16.2" y="3.8" width="3.6" height="6.8" rx="1.1" fill="${c3}"/>
+                    ` : ''}
+                    ${hasSnowman ? `
+                        <g transform="translate(-11, 5)">
+                            <circle cx="0" cy="4.5" r="4" fill="#ffffff" stroke="#dce7f2" stroke-width="0.9"/>
+                            <circle cx="0" cy="-1" r="2.8" fill="#ffffff" stroke="#dce7f2" stroke-width="0.9"/>
+                            <line x1="-1.5" y1="1.2" x2="1.5" y2="1.2" stroke="#d94e67" stroke-width="1.2"/>
+                        </g>
+                    ` : ''}
+                </g>
+            `;
+
+            g.innerHTML = bodyHtml + peopleHtml + badgeHtml;
+            g.addEventListener('click', (e) => { e.stopPropagation(); handleDaySelection(item, true); });
+            return g;
+        }
+
+        const sortedHouses = [...VILLAGE_DAYS].sort((a, b) => a.y - b.y);
+        sortedHouses.forEach(item => housesLayer.appendChild(createIsoBuildingSvg(item)));
+
+        const mapViewport = document.getElementById('mapViewport');
+        const mapTransformLayer = document.getElementById('mapTransformLayer');
+        const mapGestureHint = document.getElementById('mapGestureHint');
+        const SCENE_W = 1440;
+        const SCENE_H = 920;
+
+        let mapScale = 1, mapX = 0, mapY = 0, isDragging = false, startDragX = 0, startDragY = 0, dragDistance = 0, initialPinchDist = 0, initialPinchScale = 1;
+
+        function getMinScale() {
+            const vw = mapViewport.clientWidth || window.innerWidth;
+            const vh = mapViewport.clientHeight || 480;
+            return vw < 640 ? Math.max(0.46, vh / SCENE_H) : Math.min(vw / SCENE_W, vh / SCENE_H) * 0.92;
+        }
+
+        function clampMapPosition() {
+            const vw = mapViewport.clientWidth || window.innerWidth;
+            const vh = mapViewport.clientHeight || 480;
+            const scaledW = SCENE_W * mapScale;
+            const scaledH = SCENE_H * mapScale;
+            if (scaledW <= vw) { mapX = (vw - scaledW) / 2; } else { const minX = vw - scaledW - 24; const maxX = 24; mapX = Math.max(minX, Math.min(maxX, mapX)); }
+            if (scaledH <= vh) { mapY = (vh - scaledH) / 2; } else { const minY = vh - scaledH - 24; const maxY = 24; mapY = Math.max(minY, Math.min(maxY, mapY)); }
+        }
+
+        function applyMapTransform(smooth = false) {
+            clampMapPosition();
+            mapTransformLayer.style.transition = smooth ? 'transform 0.45s cubic-bezier(0.25, 0.8, 0.25, 1)' : 'none';
+            mapTransformLayer.style.transform = `translate(${mapX}px, ${mapY}px) scale(${mapScale})`;
+        }
+
+        function centerMapOnVillage(smooth = true) {
+            const vw = mapViewport.clientWidth || window.innerWidth;
+            const vh = mapViewport.clientHeight || 480;
+            if (vw >= 1024) {
+                mapScale = Math.min(vw / SCENE_W, vh / SCENE_H) * 1.02;
+                mapX = (vw - SCENE_W * mapScale) / 2;
+                mapY = (vh - SCENE_H * mapScale) / 2 - 10;
+            } else if (vw >= 640) {
+                mapScale = Math.max(vw / SCENE_W, vh / SCENE_H) * 0.96;
+                mapX = (vw - SCENE_W * mapScale) / 2;
+                mapY = (vh - SCENE_H * mapScale) / 2;
+            } else {
+                mapScale = Math.max(0.64, vh / SCENE_H * 1.12);
+                mapX = vw / 2 - 680 * mapScale;
+                mapY = vh / 2 - 470 * mapScale;
+            }
+            applyMapTransform(smooth);
+        }
+
+        function focusOnHouse(item) {
+            const vw = mapViewport.clientWidth || window.innerWidth;
+            const vh = mapViewport.clientHeight || 480;
+            const targetZoom = vw < 640 ? 0.92 : (vw < 1024 ? 1.02 : 1.08);
+            mapScale = Math.max(mapScale, targetZoom);
+            mapX = vw / 2 - (item.x + 36) * mapScale;
+            mapY = vh / 2 - (item.y + 52) * mapScale;
+            applyMapTransform(true);
+            document.querySelectorAll('.dayBuilding').forEach(el => el.classList.remove('highlighted'));
+            const targetEl = document.querySelector(`.dayBuilding[data-day="${item.day}"]`);
+            if (targetEl) { targetEl.classList.add('highlighted'); setTimeout(() => targetEl.classList.remove('highlighted'), 1800); }
+        }
+
+        mapViewport.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('.map-zoom-controls')) return;
+            isDragging = true; dragDistance = 0; startDragX = e.clientX - mapX; startDragY = e.clientY - mapY;
+            mapGestureHint.style.opacity = '0';
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+            const nextX = e.clientX - startDragX;
+            const nextY = e.clientY - startDragY;
+            dragDistance += Math.hypot(nextX - mapX, nextY - mapY);
+            mapX = nextX; mapY = nextY; applyMapTransform(false);
+        });
+
+        window.addEventListener('pointerup', () => { isDragging = false; });
+
+        mapViewport.addEventListener('wheel', (e) => {
+            if (e.ctrlKey || Math.abs(e.deltaY) > 0) {
+                e.preventDefault();
+                const rect = mapViewport.getBoundingClientRect();
+                const cursorX = e.clientX - rect.left; const cursorY = e.clientY - rect.top;
+                const prevScale = mapScale; const factor = e.deltaY < 0 ? 1.1 : 0.9;
+                mapScale = Math.max(getMinScale(), Math.min(1.85, mapScale * factor));
+                const ratio = mapScale / prevScale;
+                mapX = cursorX - (cursorX - mapX) * ratio; mapY = cursorY - (cursorY - mapY) * ratio;
+                applyMapTransform(false);
+            }
+        }, { passive: false });
+
+        mapViewport.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                isDragging = false;
+                initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                initialPinchScale = mapScale;
+            }
+        }, { passive: true });
+
+        mapViewport.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && initialPinchDist > 0) {
+                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                const ratio = dist / initialPinchDist;
+                mapScale = Math.max(getMinScale(), Math.min(1.85, initialPinchScale * ratio));
+                applyMapTransform(false);
+            }
+        }, { passive: true });
+
+        document.getElementById('zoomInBtn').addEventListener('click', () => { mapScale = Math.min(1.85, mapScale + 0.18); applyMapTransform(true); triggerHaptic('light'); });
+        document.getElementById('zoomOutBtn').addEventListener('click', () => { mapScale = Math.max(getMinScale(), mapScale - 0.18); applyMapTransform(true); triggerHaptic('light'); });
+        document.getElementById('zoomResetBtn').addEventListener('click', () => { centerMapOnVillage(true); triggerHaptic('light'); });
+        window.addEventListener('resize', () => centerMapOnVillage(false));
+
+        const dayModal = document.getElementById('dayModal');
+        const modalArtBanner = document.getElementById('modalArtBanner');
+        const modalDateLabel = document.getElementById('modalDateLabel');
+        const modalFactTitle = document.getElementById('modalFactTitle');
+        const modalFactText = document.getElementById('modalFactText');
+        const modalGiftPill = document.getElementById('modalGiftPill');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+        function openTriviaModal(item) {
+            const patternSvg = CARD_PATTERNS[(item.day - 1) % CARD_PATTERNS.length];
+            modalArtBanner.innerHTML = patternSvg;
+            modalDateLabel.innerText = `Dec. ${item.day} • День ${item.day} из 24`;
+            modalFactTitle.innerText = item.title;
+            modalFactText.innerText = item.fact;
+            modalGiftPill.innerText = item.gift;
+            dayModal.classList.add('active');
+        }
+
+        function closeTriviaModal() { dayModal.classList.remove('active'); triggerHaptic('light'); }
+        modalCloseBtn.addEventListener('click', closeTriviaModal);
+        dayModal.addEventListener('click', (e) => { if (e.target === dayModal) closeTriviaModal(); });
+
+        function handleDaySelection(item, openModalImmediately = true) {
+            if (dragDistance > 12) return;
+
+            // Проверяем, наступил ли нужный день декабря (1–24)
+            if (!openedDays.has(item.day) && !isDayUnlockedByCalendar(item.day)) {
+                triggerHaptic('light');
+                focusOnHouse(item);
+                showVillageToast(`Домик №${item.day} ещё спит под снегом — откроется ${item.day} декабря! (Включите «Демо» вверху для теста)`);
+                return;
+            }
+
+            const isNew = !openedDays.has(item.day);
+            if (isNew) {
+                openedDays.add(item.day);
+                saveProgress();
+                triggerHaptic('medium');
+                // При оживлении нового домика запускаем короткий праздничный снегопад
+                triggerVillageSnowBurst(9000);
+            } else {
+                triggerHaptic('light');
+            }
+
+            // Обновляем состояние домика в SVG: снимаем серый фильтр заброшенности, зажигаем свет и показываем жителей
+            const buildingEl = document.querySelector(`.dayBuilding[data-day="${item.day}"]`);
+            if (buildingEl) {
+                buildingEl.classList.remove('abandoned');
+                buildingEl.classList.add('opened');
+            }
+            updateStreetTownsfolk();
+
+            document.querySelectorAll('.day-chip').forEach(c => c.classList.remove('active-focus'));
+            const chipEl = document.querySelector(`.day-chip[data-day="${item.day}"]`);
+            if (chipEl) { chipEl.classList.add('opened', 'active-focus'); chipEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); }
+            renderAlmanac();
+            if (openModalImmediately) setTimeout(() => openTriviaModal(item), isNew ? 220 : 60);
+        }
+
+        function updateStreetTownsfolk() {
+            const count = openedDays.size;
+            document.querySelectorAll('.street-townsperson').forEach(group => {
+                const threshold = Number(group.getAttribute('data-threshold') || 1);
+                if (count >= threshold) {
+                    group.classList.add('active');
+                } else {
+                    group.classList.remove('active');
+                }
+            });
+            const garlands = document.getElementById('villageGarlands');
+            if (garlands) {
+                garlands.classList.toggle('lit', count >= 1);
+            }
+        }
+
+        function updateHeaderAndDock() {
+            const count = openedDays.size;
+            const headerCounter = document.getElementById('headerProgressNum');
+            const dockLabel = document.getElementById('dockProgressLabel');
+            if (headerCounter) headerCounter.innerText = `${count}/24`;
+            if (dockLabel) dockLabel.innerText = `Оживлено домиков: ${count} из 24`;
+        }
+
+        function refreshAllBuildingStates() {
+            document.querySelectorAll('.dayBuilding').forEach(el => {
+                const day = Number(el.getAttribute('data-day'));
+                if (openedDays.has(day)) {
+                    el.classList.remove('abandoned');
+                    el.classList.add('opened');
+                } else {
+                    el.classList.add('abandoned');
+                    el.classList.remove('opened');
+                }
+            });
+            updateStreetTownsfolk();
+        }
+
+        function renderDaysRibbon() {
+            const ribbon = document.getElementById('daysRibbon');
+            if (!ribbon) return;
+            ribbon.innerHTML = '';
+            VILLAGE_DAYS.forEach(item => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'day-chip' + (openedDays.has(item.day) ? ' opened' : '');
+                btn.setAttribute('data-day', item.day);
+                btn.innerText = item.day;
+                btn.addEventListener('click', () => {
+                    focusOnHouse(item);
+                    handleDaySelection(item, false);
+                });
+                ribbon.appendChild(btn);
+            });
+        }
+
+        function renderAlmanac() {
+            const grid = document.getElementById('almanacGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            VILLAGE_DAYS.forEach(item => {
+                const isOpened = openedDays.has(item.day);
+                const card = document.createElement('article');
+                card.className = 'almanac-card' + (isOpened ? '' : ' locked');
+                const artHtml = isOpened
+                    ? CARD_PATTERNS[(item.day - 1) % CARD_PATTERNS.length]
+                    : `<svg viewBox="0 0 240 140" preserveAspectRatio="xMidYMid slice"><text x="120" y="78" text-anchor="middle" font-family="'Montserrat', sans-serif" font-size="34" font-weight="700" fill="#9fb2cc">🔒</text></svg>`;
+                card.innerHTML = `
+                    <div class="almanac-card-art">${artHtml}</div>
+                    <div class="almanac-card-body">
+                        <h3 class="almanac-date">${item.day} декабря</h3>
+                        <p class="almanac-question">${isOpened ? item.title : 'Нажмите на домик №' + item.day + ' на карте, чтобы открыть факт'}</p>
+                    </div>
+                `;
+                card.addEventListener('click', () => {
+                    if (isOpened) {
+                        openTriviaModal(item);
+                    } else {
+                        focusOnHouse(item);
+                        handleDaySelection(item, true);
+                    }
+                });
+                grid.appendChild(card);
+            });
+        }
+
+        const villageSnowCanvas = document.getElementById('villageSnowOverlay');
+        const vCtx = villageSnowCanvas ? villageSnowCanvas.getContext('2d') : null;
+        let vWidth = 0, vHeight = 0, vSnowActive = false, vSnowStopTimer = null;
+        let vSnowFlakes = [];
+
+        function resizeVillageSnow() {
+            if (!villageSnowCanvas || !mapViewport) return;
+            vWidth = villageSnowCanvas.width = mapViewport.clientWidth || window.innerWidth;
+            vHeight = villageSnowCanvas.height = mapViewport.clientHeight || 480;
+        }
+        window.addEventListener('resize', resizeVillageSnow);
+        resizeVillageSnow();
+
+        function initVillageFlakes() {
+            vSnowFlakes = [];
+            const total = Math.min(90, Math.floor((vWidth * vHeight) / 9500) + 35);
+            for (let i = 0; i < total; i++) {
+                vSnowFlakes.push({
+                    x: Math.random() * vWidth,
+                    y: Math.random() * vHeight,
+                    r: Math.random() * 2.4 + 1,
+                    vy: Math.random() * 1.1 + 0.45,
+                    vx: Math.random() * 0.6 - 0.3,
+                    alpha: Math.random() * 0.55 + 0.35
+                });
+            }
+        }
+
+        function animateVillageSnow() {
+            if (!vSnowActive || !vCtx) return;
+            vCtx.clearRect(0, 0, vWidth, vHeight);
+            vSnowFlakes.forEach(f => {
+                f.y += f.vy; f.x += f.vx;
+                if (f.y > vHeight + 8) { f.y = -8; f.x = Math.random() * vWidth; }
+                if (f.x > vWidth) f.x = 0;
+                if (f.x < 0) f.x = vWidth;
+                vCtx.beginPath();
+                vCtx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+                vCtx.fillStyle = `rgba(255, 255, 255, ${f.alpha})`;
+                vCtx.fill();
+            });
+            requestAnimationFrame(animateVillageSnow);
+        }
+
+        function triggerVillageSnowBurst(durationMs = 18000) {
+            if (!villageSnowCanvas || !vCtx) return;
+            resizeVillageSnow();
+            if (!vSnowActive) {
+                initVillageFlakes();
+                vSnowActive = true;
+                villageSnowCanvas.classList.add('snowing');
+                animateVillageSnow();
+            }
+            clearTimeout(vSnowStopTimer);
+            vSnowStopTimer = setTimeout(() => {
+                villageSnowCanvas.classList.remove('snowing');
+                setTimeout(() => { vSnowActive = false; vCtx.clearRect(0, 0, vWidth, vHeight); }, 1500);
+            }, durationMs);
+        }
+
+        setTimeout(() => triggerVillageSnowBurst(14000), 3200);
+        setInterval(() => { triggerVillageSnowBurst(18000); }, 120000);
+
+        // Переключатель демо-режима для проверки всех 24 дней вне декабря
+        const demoModeBtn = document.getElementById('demoModeBtn');
+        demoModeBtn.addEventListener('click', () => {
+            demoUnlockAll = !demoUnlockAll;
+            demoModeBtn.innerText = demoUnlockAll ? 'Демо: Все дни' : 'Демо: Выкл';
+            triggerHaptic('light');
+            refreshAllBuildingStates();
+            showVillageToast(demoUnlockAll
+                ? 'Демо-режим: можно нажимать и оживлять любые домики с 1 по 24!'
+                : 'Календарный режим: домики открываются по датам декабря');
+        });
+
+        document.getElementById('scrollToAlmanacBtn').addEventListener('click', () => { triggerHaptic('light'); document.getElementById('almanacSection').scrollIntoView({ behavior: 'smooth' }); });
+        document.getElementById('resetAllBtn').addEventListener('click', () => {
+            openedDays.clear(); saveProgress(); triggerHaptic('light');
+            document.querySelectorAll('.dayBuilding').forEach(el => el.classList.remove('highlighted'));
+            refreshAllBuildingStates();
+            renderDaysRibbon(); renderAlmanac(); centerMapOnVillage(true);
+        });
+
+        updateHeaderAndDock();
+        refreshAllBuildingStates();
+        renderDaysRibbon();
+        renderAlmanac();
+        centerMapOnVillage(false);
+    </script>
+</body>
+</html>
