@@ -369,6 +369,16 @@
         }
         #villageSnowOverlay.snowing { opacity: 1; }
 
+        /* Салют из праздничных конфет при открытии последнего окошка */
+        #confettiOverlay {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100dvh;
+            pointer-events: none;
+            z-index: 120;
+        }
+
         .village-toast {
             position: fixed;
             bottom: 84px;
@@ -491,6 +501,8 @@
     </style>
 </head>
 <body>
+
+    <canvas id="confettiOverlay"></canvas>
 
     <div id="loader-screen">
         <div class="globe-ambient-aura"></div>
@@ -726,7 +738,7 @@
                                 <g transform="translate(1335, 295)"><polygon points="0,-30 -11,-8 11,-8" fill="#84c7b8"/><polygon points="0,-40 -8,-19 8,-19" fill="#2d7a6d"/></g>
                                 <g transform="translate(465, 480)"><polygon points="0,-32 -12,-8 12,-8" fill="#84c7b8"/><polygon points="0,-42 -9,-20 9,-20" fill="#2d7a6d"/></g>
                                 <g transform="translate(885, 465)"><polygon points="0,-30 -11,-8 11,-8" fill="#2d7a6d"/><polygon points="0,-40 -8,-19 8,-19" fill="#84c7b8"/></g>
-                                <g transform="translate(1310, 495)"><polygon points="0,-34 -13,-8 13,-8" fill="#84c7b8"/><polygon points="0,-44 -9,-21 9,-21" fill="#2d7a6d"/></g>
+                                <g transform="translate(1310, 495)"><polygon points="0,-34 -13,-8 13,-8" fill="#2d7a6d"/><polygon points="0,-44 -9,-21 9,-21" fill="#84c7b8"/></g>
                                 <g transform="translate(215, 620)"><polygon points="0,-32 -12,-8 12,-8" fill="#2d7a6d"/><polygon points="0,-42 -9,-20 9,-20" fill="#84c7b8"/></g>
                                 <g transform="translate(650, 725)"><polygon points="0,-30 -11,-8 11,-8" fill="#84c7b8"/><polygon points="0,-40 -8,-19 8,-19" fill="#2d7a6d"/></g>
                                 <g transform="translate(870, 825)"><polygon points="0,-34 -13,-8 13,-8" fill="#2d7a6d"/><polygon points="0,-44 -9,-21 9,-21" fill="#84c7b8"/></g>
@@ -975,25 +987,27 @@
             }, 1250);
         }
 
-        startVillageBtn.addEventListener('click', enterVillageWithZoom);
+        if (startVillageBtn) {
+            startVillageBtn.addEventListener('click', enterVillageWithZoom);
+        }
 
         const loadInterval = setInterval(() => {
             progress += Math.random() * 16 + 6;
             if (progress >= 100) {
                 progress = 100;
                 clearInterval(loadInterval);
-                progressBar.style.width = '100%';
-                loadingText.innerText = "Деревня готова к открытию!";
+                if (progressBar) progressBar.style.width = '100%';
+                if (loadingText) loadingText.innerText = "Деревня готова к открытию!";
                 setTimeout(() => {
-                    progressContainer.classList.add('hidden');
-                    loadingText.classList.add('hidden');
-                    startVillageBtn.classList.remove('hidden');
+                    if (progressContainer) progressContainer.classList.add('hidden');
+                    if (loadingText) loadingText.classList.add('hidden');
+                    if (startVillageBtn) startVillageBtn.classList.remove('hidden');
                     triggerHaptic('light');
                 }, 260);
                 return;
             }
-            progressBar.style.width = progress + '%';
-            loadingText.innerText = `Загрузка подарков... ${Math.floor(progress)}%`;
+            if (progressBar) progressBar.style.width = progress + '%';
+            if (loadingText) loadingText.innerText = `Загрузка подарков... ${Math.floor(progress)}%`;
         }, 180);
 
         const CARD_PATTERNS = [
@@ -1027,13 +1041,21 @@
             { day: 21, x: 155, y: 365, style: 'dome', leftCol: '#8ec5e8', rightCol: '#2b427d', roofCol: '#1e2f5c', numSide: 'left', title: 'Сказочный балет «Щелкунчик»', fact: 'Премьера балета Петра Ильича Чайковского состоялась в декабре 1892 года и с тех пор стала главным символом зимней сказки.', gift: '🩰 Музыкальная шкатулка' },
             { day: 22, x: 1265, y: 330, style: 'dome', leftCol: '#f5a3b7', rightCol: '#fdf3d7', roofCol: '#d94e67', numSide: 'right', title: 'Уютные свитера с узорами', fact: 'Традиционные норвежские и исландские свитера с геометрическими снежинками вяжутся из овечьей шерсти и согревают в любой мороз.', gift: '🧶 Тёплый свитер с оленями' },
             { day: 23, x: 825, y: 245, style: 'townhouse', leftCol: '#4a5578', rightCol: '#fdf3d7', roofCol: '#1e2f5c', numSide: 'left', title: 'Канун большого праздника', fact: 'Во многих домах в этот вечер накрывают стол, зажигают бенгальские огни и кладут последние подарки под ёлку.', gift: '🎇 Бенгальские огни' },
-            { day: 24, x: 615, y: 235, style: 'townhouse', leftCol: '#1e2f5c', rightCol: '#2b427d', roofCol: '#1e2f5c', numSide: 'right', title: 'Главное рождественское чудо!', fact: 'Все 24 окошка деревни зажглись! Пусть наступающий год принесёт вам вдохновение, тепло близких и исполнение самых заветных желаний.', gift: '👑 Большой новогодний подарок' }
+            { day: 24, x: 615, y: 235, style: 'townhouse', leftCol: '#1e2f5c', rightCol: '#2b427d', roofCol: '#1e2f5c', numSide: 'right', title: 'Поздравляем! Все 24 окна открыты!', fact: 'Вы зажгли огни во всей рождественской деревне! Пусть наступающий год принесёт вам радость, тепло близких и исполнение самых заветных желаний.', gift: '👑 Главный новогодний подарок' }
         ];
 
         const STORAGE_KEY = 'advent_village_opened_days_v2';
         let openedDays = new Set();
 
+        // === ТЕСТОВЫЙ РЕЖИМ ПРЕДПРОСМОТРА ===
+        // Закомментируйте строку ниже (поставьте // в начале), когда закончите проверку,
+        // чтобы домики открывались строго по датам декабря (с 1 по 24 декабря):
+        //const TEST_UNLOCK_ALL_DAYS = true;
+
         function getMaxUnlockedDecemberDay() {
+            if (typeof TEST_UNLOCK_ALL_DAYS !== 'undefined' && TEST_UNLOCK_ALL_DAYS) {
+                return 24;
+            }
             const now = new Date();
             const month = now.getMonth();
             const day = now.getDate();
@@ -1099,6 +1121,113 @@
             updateHeaderAndDock();
         }
         loadProgress();
+
+        // --- САЛЮТ ИЗ ПРАЗДНИЧНЫХ КОНФЕТ ПРИ ОТКРЫТИИ ПОСЛЕДНЕГО ОКНА ---
+        const confettiCanvas = document.getElementById('confettiOverlay');
+        const cCtx = confettiCanvas ? confettiCanvas.getContext('2d') : null;
+        let confettiPieces = [];
+        let confettiAnimId = null;
+
+        function resizeConfettiCanvas() {
+            if (!confettiCanvas) return;
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeConfettiCanvas);
+        resizeConfettiCanvas();
+
+        function launchCandyConfetti() {
+            if (!confettiCanvas || !cCtx) return;
+            resizeConfettiCanvas();
+            const colors = ['#ffd166', '#ff6b8b', '#4f86f7', '#84c7b8', '#d94e67', '#ffffff'];
+            const shapes = ['candy', 'rect', 'circle'];
+            confettiPieces = [];
+
+            for (let i = 0; i < 140; i++) {
+                const isSideBurst = i < 40;
+                const originX = isSideBurst
+                    ? (i % 2 === 0 ? confettiCanvas.width * 0.18 : confettiCanvas.width * 0.82)
+                    : Math.random() * confettiCanvas.width;
+                const originY = isSideBurst
+                    ? confettiCanvas.height * 0.55
+                    : -20 - Math.random() * 140;
+
+                confettiPieces.push({
+                    x: originX,
+                    y: originY,
+                    vx: isSideBurst ? (i % 2 === 0 ? Math.random() * 6 + 2 : -(Math.random() * 6 + 2)) : (Math.random() * 3.4 - 1.7),
+                    vy: isSideBurst ? -(Math.random() * 7 + 4) : (Math.random() * 3.2 + 2.2),
+                    size: Math.random() * 7 + 6,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    shape: shapes[Math.floor(Math.random() * shapes.length)],
+                    angle: Math.random() * Math.PI * 2,
+                    vAngle: (Math.random() - 0.5) * 0.18,
+                    opacity: 1
+                });
+            }
+
+            if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+
+            function renderConfetti() {
+                cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+                let activeCount = 0;
+
+                confettiPieces.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.14;
+                    p.vx *= 0.99;
+                    p.angle += p.vAngle;
+
+                    if (p.y > confettiCanvas.height * 0.78) {
+                        p.opacity -= 0.025;
+                    }
+
+                    if (p.opacity > 0.02 && p.y < confettiCanvas.height + 40) {
+                        activeCount++;
+                        cCtx.save();
+                        cCtx.globalAlpha = Math.max(0, p.opacity);
+                        cCtx.translate(p.x, p.y);
+                        cCtx.rotate(p.angle);
+                        cCtx.fillStyle = p.color;
+
+                        if (p.shape === 'candy') {
+                            cCtx.beginPath();
+                            cCtx.ellipse(0, 0, p.size * 0.75, p.size * 0.48, 0, 0, Math.PI * 2);
+                            cCtx.fill();
+                            cCtx.beginPath();
+                            cCtx.moveTo(-p.size * 0.72, 0);
+                            cCtx.lineTo(-p.size * 1.15, -p.size * 0.35);
+                            cCtx.lineTo(-p.size * 1.15, p.size * 0.35);
+                            cCtx.closePath();
+                            cCtx.fill();
+                            cCtx.beginPath();
+                            cCtx.moveTo(p.size * 0.72, 0);
+                            cCtx.lineTo(p.size * 1.15, -p.size * 0.35);
+                            cCtx.lineTo(p.size * 1.15, p.size * 0.35);
+                            cCtx.closePath();
+                            cCtx.fill();
+                        } else if (p.shape === 'circle') {
+                            cCtx.beginPath();
+                            cCtx.arc(0, 0, p.size * 0.45, 0, Math.PI * 2);
+                            cCtx.fill();
+                        } else {
+                            cCtx.fillRect(-p.size * 0.5, -p.size * 0.3, p.size, p.size * 0.6);
+                        }
+                        cCtx.restore();
+                    }
+                });
+
+                if (activeCount > 0) {
+                    confettiAnimId = requestAnimationFrame(renderConfetti);
+                } else {
+                    cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+                    confettiAnimId = null;
+                }
+            }
+
+            renderConfetti();
+        }
 
         const housesLayer = document.getElementById('interactiveHousesLayer');
 
@@ -1218,31 +1347,26 @@
             if (!mapViewport) return 0.5;
             const vw = mapViewport.clientWidth || window.innerWidth;
             const vh = mapViewport.clientHeight || 480;
-            return vw < 640 ? Math.max(0.46, vh / SCENE_H) : Math.min(vw / SCENE_W, vh / SCENE_H) * 0.92;
+            return Math.max(vw / SCENE_W, vh / SCENE_H);
         }
 
         function clampMapPosition() {
             if (!mapViewport) return;
             const vw = mapViewport.clientWidth || window.innerWidth;
             const vh = mapViewport.clientHeight || 480;
+            const minS = getMinScale();
+            if (mapScale < minS) mapScale = minS;
+
             const scaledW = SCENE_W * mapScale;
             const scaledH = SCENE_H * mapScale;
 
-            if (scaledW <= vw) {
-                mapX = (vw - scaledW) / 2;
-            } else {
-                const minX = vw - scaledW - 24;
-                const maxX = 24;
-                mapX = Math.max(minX, Math.min(maxX, mapX));
-            }
+            const minX = vw - scaledW;
+            const maxX = 0;
+            mapX = scaledW <= vw ? (vw - scaledW) / 2 : Math.max(minX, Math.min(maxX, mapX));
 
-            if (scaledH <= vh) {
-                mapY = (vh - scaledH) / 2;
-            } else {
-                const minY = vh - scaledH - 24;
-                const maxY = 24;
-                mapY = Math.max(minY, Math.min(maxY, mapY));
-            }
+            const minY = vh - scaledH;
+            const maxY = 0;
+            mapY = scaledH <= vh ? (vh - scaledH) / 2 : Math.max(minY, Math.min(maxY, mapY));
         }
 
         function applyMapTransform(smooth = false) {
@@ -1256,19 +1380,20 @@
             if (!mapViewport || !mapTransformLayer) return;
             const vw = mapViewport.clientWidth || window.innerWidth;
             const vh = mapViewport.clientHeight || 480;
+            const coverScale = getMinScale();
 
             if (vw >= 1024) {
-                mapScale = Math.min(vw / SCENE_W, vh / SCENE_H) * 1.02;
+                mapScale = coverScale * 1.04;
                 mapX = (vw - SCENE_W * mapScale) / 2;
-                mapY = (vh - SCENE_H * mapScale) / 2 - 10;
+                mapY = (vh - SCENE_H * mapScale) / 2;
             } else if (vw >= 640) {
-                mapScale = Math.max(vw / SCENE_W, vh / SCENE_H) * 0.96;
+                mapScale = coverScale * 1.06;
                 mapX = (vw - SCENE_W * mapScale) / 2;
                 mapY = (vh - SCENE_H * mapScale) / 2;
             } else {
-                mapScale = Math.max(0.64, vh / SCENE_H * 1.12);
-                mapX = vw / 2 - 680 * mapScale;
-                mapY = vh / 2 - 470 * mapScale;
+                mapScale = Math.max(coverScale * 1.15, 0.72);
+                mapX = vw / 2 - 710 * mapScale;
+                mapY = vh / 2 - 480 * mapScale;
             }
             applyMapTransform(smooth);
         }
@@ -1357,19 +1482,19 @@
             }, { passive: true });
         }
 
-        document.getElementById('zoomInBtn').addEventListener('click', () => {
+        document.getElementById('zoomInBtn')?.addEventListener('click', () => {
             mapScale = Math.min(1.85, mapScale + 0.18);
             applyMapTransform(true);
             triggerHaptic('light');
         });
 
-        document.getElementById('zoomOutBtn').addEventListener('click', () => {
+        document.getElementById('zoomOutBtn')?.addEventListener('click', () => {
             mapScale = Math.max(getMinScale(), mapScale - 0.18);
             applyMapTransform(true);
             triggerHaptic('light');
         });
 
-        document.getElementById('zoomResetBtn').addEventListener('click', () => {
+        document.getElementById('zoomResetBtn')?.addEventListener('click', () => {
             centerMapOnVillage(true);
             triggerHaptic('light');
         });
@@ -1401,27 +1526,65 @@
         const modalFactTitle = document.getElementById('modalFactTitle');
         const modalFactText = document.getElementById('modalFactText');
         const modalGiftPill = document.getElementById('modalGiftPill');
+        const modalSurpriseBox = document.getElementById('modalSurpriseBox');
+        const surpriseTypeTag = document.getElementById('surpriseTypeTag');
+        const surpriseTitle = document.getElementById('surpriseTitle');
+        const surpriseBody = document.getElementById('surpriseBody');
+        const surpriseRefreshBtn = document.getElementById('surpriseRefreshBtn');
         const modalCloseBtn = document.getElementById('modalCloseBtn');
 
+        const SURPRISE_POOL = [
+            { type: '☕ Зимний рецепт', title: 'Пряное какао с апельсином', body: 'Подогрейте 250 мл молока с 2 ст. л. какао, щепоткой корицы, цедрой половины апельсина и долькой тёмного шоколада. Подавайте с маршмеллоу!' },
+            { type: '🔮 Предсказание дня', title: 'Неожиданная радость', body: 'Совсем скоро вы получите тёплую весточку от человека, о котором давно думали. Декабрь готовит для вас уютный сюрприз.' },
+            { type: '✨ Цитата дня', title: 'О зимнем волшебстве', body: '«Зима — это время, когда тепло измеряется не градусами за окном, а уютом в доме и искренними улыбками близких».' },
+            { type: '🍪 Зимний рецепт', title: 'Быстрый имбирный латте', body: 'Смешайте эспрессо или крепкий кофе с горячим молоком, добавьте 1 ч. л. мёда, щепотку молотого имбиря и мускатного ореха.' },
+            { type: '🔮 Предсказание дня', title: 'Исполнение задуманного', body: 'Идея, которую вы откладывали весь год, получит неожиданный импульс. Смело загадывайте желание — звёзды на вашей стороне!' },
+            { type: '✨ Цитата дня', title: 'Свет внутри нас', body: '«Даже в самую длинную декабрьскую ночь достаточно одной маленькой свечи, чтобы комната наполнилась светом».' }
+        ];
+
+        let lastSurpriseIndex = -1;
+        function showRandomSurprise() {
+            if (!modalSurpriseBox || !surpriseTypeTag || !surpriseTitle || !surpriseBody) return;
+            let idx = Math.floor(Math.random() * SURPRISE_POOL.length);
+            if (idx === lastSurpriseIndex) idx = (idx + 1) % SURPRISE_POOL.length;
+            lastSurpriseIndex = idx;
+            const entry = SURPRISE_POOL[idx];
+            surpriseTypeTag.innerText = entry.type;
+            surpriseTitle.innerText = entry.title;
+            surpriseBody.innerText = entry.body;
+            modalSurpriseBox.classList.remove('hidden');
+            triggerHaptic('light');
+        }
+
+        modalGiftPill?.addEventListener('click', showRandomSurprise);
+        surpriseRefreshBtn?.addEventListener('click', showRandomSurprise);
+
         function openTriviaModal(item) {
+            if (!dayModal || !modalArtBanner || !modalDateLabel || !modalFactTitle || !modalFactText || !modalGiftPill) return;
             const patternSvg = CARD_PATTERNS[(item.day - 1) % CARD_PATTERNS.length];
             modalArtBanner.innerHTML = patternSvg;
-            modalDateLabel.innerText = `Dec. ${item.day} • День ${item.day} из 24`;
+            const isFinale = item.day === 24 || openedDays.size === 24;
+            modalDateLabel.innerText = isFinale
+                ? `🎉 Поздравляем! Dec. ${item.day} • Финал (24/24)`
+                : `Dec. ${item.day} • День ${item.day} из 24`;
             modalFactTitle.innerText = item.title;
             modalFactText.innerText = item.fact;
-            modalGiftPill.innerText = item.gift;
+            modalGiftPill.innerText = `${item.gift} • Нажми для сюрприза ✨`;
+            modalSurpriseBox?.classList.add('hidden');
             dayModal.classList.add('active');
         }
 
         function closeTriviaModal() {
-            dayModal.classList.remove('active');
+            dayModal?.classList.remove('active');
             triggerHaptic('light');
         }
 
-        modalCloseBtn.addEventListener('click', closeTriviaModal);
-        dayModal.addEventListener('click', (e) => {
-            if (e.target === dayModal) closeTriviaModal();
-        });
+        modalCloseBtn?.addEventListener('click', closeTriviaModal);
+        if (dayModal) {
+            dayModal.addEventListener('click', (e) => {
+                if (e.target === dayModal) closeTriviaModal();
+            });
+        }
 
         function handleDaySelection(item, openModalImmediately = true) {
             if (dragDistance > 12) return;
@@ -1441,6 +1604,12 @@
                 triggerVillageSnowBurst(9000);
             } else {
                 triggerHaptic('light');
+            }
+
+            const isLastWindow = item.day === 24 || openedDays.size === 24;
+            if (isLastWindow) {
+                launchCandyConfetti();
+                showVillageToast('🍬 Поздравляем! Вы открыли финальное окошко и зажгли всю деревню!');
             }
 
             const buildingEl = document.querySelector(`.dayBuilding[data-day="${item.day}"]`);
@@ -1479,6 +1648,7 @@
 
         const almanacGrid = document.getElementById('almanacGrid');
         function renderAlmanac() {
+            if (!almanacGrid) return;
             almanacGrid.innerHTML = '';
             VILLAGE_DAYS.forEach(item => {
                 const isOpened = openedDays.has(item.day);
@@ -1593,8 +1763,8 @@
         const headerProgressNum = document.getElementById('headerProgressNum');
         const dockProgressLabel = document.getElementById('dockProgressLabel');
         function updateHeaderAndDock() {
-            headerProgressNum.innerText = `${openedDays.size}/24`;
-            dockProgressLabel.innerText = `Оживлено домиков: ${openedDays.size} из 24`;
+            if (headerProgressNum) headerProgressNum.innerText = `${openedDays.size}/24`;
+            if (dockProgressLabel) dockProgressLabel.innerText = `Оживлено домиков: ${openedDays.size} из 24`;
             const garlands = document.getElementById('villageGarlands');
             if (garlands) {
                 if (openedDays.size > 0) garlands.classList.add('lit');
@@ -1610,10 +1780,14 @@
             });
         }
 
-        document.getElementById('scrollToAlmanacBtn').addEventListener('click', () => {
-            triggerHaptic('light');
-            document.getElementById('almanacSection').scrollIntoView({ behavior: 'smooth' });
-        });
+        const scrollToAlmanacBtn = document.getElementById('scrollToAlmanacBtn');
+        const almanacSection = document.getElementById('almanacSection');
+        if (scrollToAlmanacBtn && almanacSection) {
+            scrollToAlmanacBtn.addEventListener('click', () => {
+                triggerHaptic('light');
+                almanacSection.scrollIntoView({ behavior: 'smooth' });
+            });
+        }
 
         updateHeaderAndDock();
         refreshAllBuildingStates();
